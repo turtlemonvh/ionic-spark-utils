@@ -1,0 +1,6 @@
+*.txt
+target/
+project/project/
+project/target/
+sbt/
+
