@@ -17,23 +17,23 @@ import com.ionic.sdk.device.profile.persistor.DeviceProfiles
 
 object Credentials {
 
-    val deviceProfileEnvVar = "IONIC_PROFILE"
+  val deviceProfileEnvVar = "IONIC_PROFILE"
 
   /**
-    * Load device profile from an environment variable.
-    */
-    def profileFromEnvVar(): String = {
-        val envVars = System.getenv().asScala
-        envVars.get(deviceProfileEnvVar).get
-    }
+   * Load device profile from an environment variable.
+   */
+  def profileFromEnvVar(): String = {
+    val envVars = System.getenv().asScala
+    envVars.get(deviceProfileEnvVar).get
+  }
 
   /**
-    * Gets an agent object from a JSON string.
-    */
-    def getAgent(profileJson: String): Agent = {
-        // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/device/profile/persistor/DeviceProfiles.html
-        val deviceProfiles = new DeviceProfiles(profileJson)
-        new Agent(deviceProfiles)
-    }
+   * Gets an agent object from a JSON string.
+   */
+  def getAgent(profileJson: String): Agent = {
+    // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/device/profile/persistor/DeviceProfiles.html
+    val deviceProfiles = new DeviceProfiles(profileJson)
+    new Agent(deviceProfiles)
+  }
 
 }
