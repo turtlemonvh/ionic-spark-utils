@@ -18,15 +18,14 @@ lazy val root = (project in file(".")).
 
     javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
     javaOptions ++= Seq("-Xms512M", "-Xmx2048M", "-XX:MaxPermSize=2048M", "-XX:+CMSClassUnloadingEnabled"),
+    testOptions += Tests.Argument(TestFrameworks.JUnit, "-v"),
     scalacOptions ++= Seq("-deprecation", "-unchecked"),
     parallelExecution in Test := false,
     fork := true,
 
     coverageHighlighting := true,
 
-    libraryDependencies ++= sparkDeps,
-    libraryDependencies ++= coreDeps,
-    libraryDependencies ++= testDeps,
+    libraryDependencies ++= sparkDeps ++ coreDeps ++ testDeps,
 
     // uses compile classpath for the run task, including "provided" jar (cf http://stackoverflow.com/a/21803413/3827)
     run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run)).evaluated,
@@ -34,7 +33,7 @@ lazy val root = (project in file(".")).
     scalacOptions ++= Seq("-deprecation", "-unchecked"),
     pomIncludeRepository := { x => false },
 
-   resolvers ++= repos,
+    resolvers ++= repos,
 
     pomIncludeRepository := { x => false },
 

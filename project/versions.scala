@@ -5,6 +5,8 @@ object Versions {
   // Core
   lazy val scalaTestVer = "3.0.5"
   lazy val scalaCheckVer = "1.13.4"
+  lazy val junitInterfaceVer = "0.11"
+  lazy val junitVer = "4.11"
   // Spark
   lazy val hadoopVer = "2.7.3"
   lazy val sparkTestingBaseVer = "2.4.0_0.11.0"

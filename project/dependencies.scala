@@ -31,7 +31,9 @@ object Dependencies {
     "org.apache.spark" %% "spark-hive" % sparkVer % "test",
     // https://mvnrepository.com/artifact/org.scalatest/scalatest
     "org.scalatest" %% "scalatest" % scalaTestVer % "test",
-    "org.scalacheck" %% "scalacheck" % scalaCheckVer % "test"
+    "org.scalacheck" %% "scalacheck" % scalaCheckVer % "test",
+    "junit" % "junit" % junitVer % "test",
+    "com.novocode" % "junit-interface" % junitInterfaceVer % "test"
   )
 
   val repos = Seq(
