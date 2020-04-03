@@ -42,8 +42,9 @@ object Dependencies {
     "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
     "Spark Packages Repository" at "https://dl.bintray.com/spark-packages/maven/",
     "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases/",
-    "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
-    "Second Typesafe repo" at "http://repo.typesafe.com/typesafe/maven-releases/",
+    "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
+    "Typesafe maven repo" at "https://repo.typesafe.com/typesafe/maven-releases/",
+    "Typesafe ivy repo" at "https://repo.typesafe.com/typesafe/ivy-releases/",
     Resolver.sonatypeRepo("public")
   )
 }

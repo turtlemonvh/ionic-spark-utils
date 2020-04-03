@@ -13,12 +13,10 @@ lazy val root = (project in file(".")).
     name := "sparkutil",
     version := sparkUtilVer,
 
-    sparkVersion := sparkVer,
-    sparkComponents := Seq(),
-
+    // FIXME: "bootstrap class path not set in conjunction with -source 8"
     javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
     javaOptions ++= Seq("-Xms512M", "-Xmx2048M", "-XX:MaxPermSize=2048M", "-XX:+CMSClassUnloadingEnabled"),
-    testOptions += Tests.Argument(TestFrameworks.JUnit, "-v"),
+    testOptions += Tests.Argument(TestFrameworks.JUnit, "-v", "-a", "+q"),
     scalacOptions ++= Seq("-deprecation", "-unchecked"),
     parallelExecution in Test := false,
     fork := true,

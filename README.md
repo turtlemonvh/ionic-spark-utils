@@ -23,9 +23,13 @@ $ sbt
 > compile
 # Run the tests
 > test
+# Get a list of all tests
+> show test:definedTests
 # Reload after changes to build.sbt and friends
 > reload
 ```
+
+Note that junit tests are often skipped by sbt. Running `clean` seems to consistently fix this behavior.
 
 ## Credits
 
