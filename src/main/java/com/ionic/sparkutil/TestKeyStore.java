@@ -71,11 +71,14 @@ public class TestKeyStore {
   /* Also updates the external id index.
   /* Guarded by a lock to prevent concurrent modification of the key store.
   */
-  public CreateKeysResponse.Key addKey(CreateKeysResponse.Key ccrk) throws IonicException {
+  public CreateKeysResponse.Key addKey(CreateKeysResponse.Key ccrk, boolean shouldGenerateKeyId)
+      throws IonicException {
     this.keyCreateModifyLock.writeLock().lock();
 
     // Overwrite the key id
-    ccrk.setId(this.generateNextKeyId());
+    if (shouldGenerateKeyId) {
+      ccrk.setId(this.generateNextKeyId());
+    }
 
     // Add to keystore
     this.keys.put(ccrk.getId(), ccrk);

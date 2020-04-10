@@ -10,6 +10,7 @@ import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
 import com.ionic.sdk.agent.request.updatekey.UpdateKeysResponse;
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.ServerError;
+import com.ionic.sdk.error.SdkError;
 
 import static org.junit.Assert.*;
 import java.util.ArrayList;
@@ -170,5 +171,78 @@ public class TestAgentTest {
 
     // Ensure the ids match
     assertTrue(fetchedKey.getId() == createdKey.getId());
+  }
+
+  @Test
+  public void testFaultInjectionOnCreate() throws IonicException {
+    TestAgent a = new TestAgent();
+
+    // Set client error
+    // Raises exception
+    a.clientErrorState = SdkError.ISAGENT_ERROR;
+    IonicException thrownException = null;
+    try {
+      a.createKey();
+    } catch (IonicException e) {
+      thrownException = e;
+    }
+    assertTrue(thrownException.getReturnCode() == SdkError.ISAGENT_ERROR);
+    a.clientErrorState = 0;
+
+    // Set server side error
+    // No exception, just set on the response object
+    a.serverErrorState = ServerError.INTERNAL_ERROR;
+    CreateKeysResponse ccr = a.createKey();
+    assertTrue(ccr.getServerErrorCode() == ServerError.INTERNAL_ERROR);
+
+    // Attempting to access key in the result object results in a new exception being thrown
+    try {
+      CreateKeysResponse.Key createdKey = ccr.getFirstKey();
+    } catch (IonicException e) {
+      thrownException = e;
+    }
+    assertTrue(thrownException.getReturnCode() == SdkError.ISAGENT_KEY_DENIED);
+  }
+
+  @Test
+  public void testFaultInjectionOnFetch() throws IonicException {
+    TestAgent a = new TestAgent();
+    CreateKeysResponse ccr = a.createKey();
+    CreateKeysResponse.Key createdKey = ccr.getFirstKey();
+
+    // Set client error
+    a.clientErrorState = SdkError.ISAGENT_ERROR;
+
+    // We got back a key, but its null (when accessed via map)
+    GetKeysResponse resp1 = a.getKey(createdKey.getId());
+    GetKeysResponse.Key fetchedKey1 = resp1.getKey(createdKey.getId());
+    assertTrue(fetchedKey1 == null);
+
+    // Access via "getFirstKey", we get an exception
+    IonicException thrownException = null;
+    try {
+      fetchedKey1 = resp1.getFirstKey();
+    } catch (IonicException e) {
+      thrownException = e;
+    }
+    assertTrue(thrownException.getReturnCode() == SdkError.ISAGENT_KEY_DENIED);
+
+    a.clientErrorState = 0;
+
+    // Set server error
+    a.serverErrorState = ServerError.INTERNAL_ERROR;
+
+    // We got back a key, but its null (when accessed via map)
+    GetKeysResponse resp2 = a.getKey(createdKey.getId());
+    GetKeysResponse.Key fetchedKey2 = resp2.getKey(createdKey.getId());
+    assertTrue(fetchedKey2 == null);
+
+    // Access via "getFirstKey", we get an exception
+    try {
+      fetchedKey2 = resp2.getFirstKey();
+    } catch (IonicException e) {
+      thrownException = e;
+    }
+    assertTrue(thrownException.getReturnCode() == SdkError.ISAGENT_KEY_DENIED);
   }
 }

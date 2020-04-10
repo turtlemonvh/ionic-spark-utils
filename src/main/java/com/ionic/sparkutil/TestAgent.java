@@ -50,6 +50,12 @@ public class TestAgent implements KeyServices {
   private static final String defaultProfileName = "default";
   private static final String defaultHostname = "ionic.com";
 
+  // Error states
+  // Set these to cause api calls to return various error codes
+  // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/error/package-summary.html
+  public int serverErrorState = 0;
+  public int clientErrorState = 0;
+
   // Base constructor
   public TestAgent(TestKeyStore keystore, String deviceId, String origin) throws IonicException {
     // Handle changing nulls to defaults
@@ -123,23 +129,33 @@ public class TestAgent implements KeyServices {
   }
 
   /*
-   * Returns a https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/createkey/CreateKeysResponse.Key.html
+   * Modifies a CreateKeysResponse object to add the created key. Also adds to the key store.
    */
   private void addKeyToCreateKeyResponse(CreateKeysRequest.Key key, CreateKeysResponse ccr)
       throws IonicException {
+
+    // Handle injected faults
+    if (this.clientErrorState != 0) {
+      throw new IonicException(this.clientErrorState, "Error creating keys");
+    } else if (this.serverErrorState != 0) {
+      ccr.setServerErrorCode(this.serverErrorState);
+      ccr.setServerErrorMessage("Error creating keys");
+      return;
+    }
+
     for (int ikey = 0; ikey < key.getQuantity(); ikey++) {
       KeyObligationsMap obligations = new KeyObligationsMap();
       CreateKeysResponse.Key ccrk =
           new CreateKeysResponse.Key(
               key.getRefId(),
-              "1", // Will be set for us in `addKey`
+              "1", // Will be set for us in `addKey`. `null` is not allowed.
               cryptoRng.rand(new byte[AesCipher.KEY_BYTES]),
               this.getActiveProfile().getDeviceId(),
               key.getAttributesMap(),
               key.getMutableAttributesMap(),
               obligations,
               this.profile.getServer());
-      ccrk = this.keystore.addKey(ccrk);
+      ccrk = this.keystore.addKey(ccrk, true);
       ccr.add(ccrk);
     }
   }
@@ -178,7 +194,13 @@ public class TestAgent implements KeyServices {
     Set<String> keyIds = this.keystore.getKeyIdsForExternalId(externalId);
     for (String keyId : keyIds) {
       CreateKeysResponse.Key key = this.keystore.getKeyById(keyId);
-      if (keyId != null && key == null) {
+      if (this.clientErrorState != 0) {
+        response.add(
+            new GetKeysResponse.IonicError(keyId, this.clientErrorState, 0, "Error fetching key"));
+      } else if (this.serverErrorState != 0) {
+        response.add(
+            new GetKeysResponse.IonicError(keyId, 0, this.serverErrorState, "Error fetching key"));
+      } else if (keyId != null && key == null) {
         // The key id is defined, but we can't find it
         this.addMissingKeyErrorToResponse(keyId, response);
       } else {
@@ -225,7 +247,13 @@ public class TestAgent implements KeyServices {
   private void addKeyToGetKeyResponse(
       final String keyId, MetadataMap metadata, GetKeysResponse response) {
     CreateKeysResponse.Key key = this.keystore.getKeyById(keyId);
-    if (key == null) {
+    if (this.clientErrorState != 0) {
+      response.add(
+          new GetKeysResponse.IonicError(keyId, this.clientErrorState, 0, "Error fetching key"));
+    } else if (this.serverErrorState != 0) {
+      response.add(
+          new GetKeysResponse.IonicError(keyId, 0, this.serverErrorState, "Error fetching key"));
+    } else if (key == null) {
       this.addMissingKeyErrorToResponse(keyId, response);
     } else {
       this.addSingleKeyToResponse(key, response);
@@ -261,7 +289,15 @@ public class TestAgent implements KeyServices {
     for (UpdateKeysRequest.Key key : request.getKeys()) {
       // For each, either add key or error
       int respCode = this.keystore.updateKey(key);
-      if (respCode != ServerError.SERVER_OK) {
+      if (this.clientErrorState != 0) {
+        resp.add(
+            new UpdateKeysResponse.IonicError(
+                key.getId(), this.clientErrorState, 0, "Error updating key"));
+      } else if (this.serverErrorState != 0) {
+        resp.add(
+            new UpdateKeysResponse.IonicError(
+                key.getId(), 0, this.serverErrorState, "Error updating key"));
+      } else if (respCode != ServerError.SERVER_OK) {
         resp.add(new UpdateKeysResponse.IonicError(key.getId(), 0, respCode, "Error updating key"));
       } else {
         resp.add(
