@@ -24,8 +24,12 @@ import com.ionic.sdk.core.rng.CryptoRng;
 import com.ionic.sdk.core.codec.Transcoder;
 import com.ionic.sdk.cipher.aes.AesCipher;
 
+import com.ionic.sparkutil.TestKeyStore;
+
 import java.security.SecureRandom;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Set;
 import java.util.UUID;
 import java.util.ArrayList;
@@ -34,83 +38,52 @@ import java.util.HashSet;
 
 /*
  * TestAgent is a mock based on KeyServices (https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/key/KeyServices.html).
- *
+ * Internals are exposed as public attributes for convenience in evaluating state in tests.
  */
 public class TestAgent implements KeyServices {
-  public String keyspace;
   public DeviceProfile profile;
   public String origin;
-  public HashMap<String, CreateKeysResponse.Key> keys;
-  public HashMap<String, Set<String>> externalIdToKeyId;
+  public TestKeyStore keystore;
   private final CryptoRng cryptoRng;
 
   // Defaults
-  private static final String ionicExternalIdAttributeName = "ionic-external-id";
   private static final String defaultKeyspace = "ABCD";
   private static final String defaultProfileName = "default";
   private static final String defaultHostname = "ionic.com";
-  private static final int keyIdLength = 7;
 
   // Base constructor
-  public TestAgent(String keyspace, String deviceId, String origin) {
+  public TestAgent(TestKeyStore keystore, String deviceId, String origin) throws IonicException {
+    // Handle changing nulls to defaults
+    if (keystore == null) {
+      keystore = new TestKeyStore(defaultKeyspace);
+    }
+    this.keystore = keystore;
+    if (origin == null) {
+      origin = defaultHostname;
+    }
+    this.origin = origin;
     if (deviceId == null) {
       final String uuid = UUID.randomUUID().toString();
-      deviceId = Value.join(Value.DOT, keyspace, uuid.substring(0, 1), uuid);
+      deviceId = Value.join(Value.DOT, this.keystore.keyspace, uuid.substring(0, 1), uuid);
     }
-    this.keyspace = keyspace;
-    this.origin = origin;
+
     this.cryptoRng = new CryptoRng();
     // Initialize profile
     final String profileName = defaultProfileName;
     final long creationTimestamp = (System.currentTimeMillis() / DateTime.ONE_SECOND_MILLIS);
-    final byte[] aesCdIdcKey = this.genRandomBytes(AesCipher.KEY_BYTES);
-    final byte[] aesCdEiKey = this.genRandomBytes(AesCipher.KEY_BYTES);
+    final byte[] aesCdIdcKey = cryptoRng.rand(new byte[AesCipher.KEY_BYTES]);
+    final byte[] aesCdEiKey = cryptoRng.rand(new byte[AesCipher.KEY_BYTES]);
     this.profile =
         new DeviceProfile(
             profileName, creationTimestamp, deviceId, this.origin, aesCdIdcKey, aesCdEiKey);
-    // Initialize keystore
-    this.keys = new HashMap<String, CreateKeysResponse.Key>();
-    this.externalIdToKeyId = new HashMap<String, Set<String>>();
   }
 
-  public TestAgent() {
-    this(defaultKeyspace, null, defaultHostname);
+  public TestAgent() throws IonicException {
+    this(new TestKeyStore(defaultKeyspace), null, null);
   }
 
-  private static byte[] genRandomBytes(int n) {
-    final byte[] key = new byte[n];
-    try {
-      // https://docs.oracle.com/javase/8/docs/api/java/security/SecureRandom.html
-      SecureRandom.getInstanceStrong().nextBytes(key);
-    } catch (java.security.NoSuchAlgorithmException e) {
-      throw new RuntimeException("Unexpected error");
-    }
-    return key;
-  }
-
-  private String base64UrlSafeEncode(byte[] bts) {
-    return Transcoder.base64().encode(bts).replace("+", "-").replace("/", "_");
-  }
-
-  private String generateKeyId() throws IonicException {
-    final byte[] randomId = cryptoRng.rand(new byte[keyIdLength]);
-    return (this.keyspace + this.base64UrlSafeEncode(randomId)).substring(0, keyIdLength);
-  }
-
-  private void addKeyToStore(CreateKeysResponse.Key ccrk) {
-    // Add to keystore
-    this.keys.put(ccrk.getId(), ccrk);
-
-    // Update mapping of external ids to keys
-    // TODO: Should mutable attribute setting of external id work?
-    if (ccrk.getAttributesMap().containsKey(ionicExternalIdAttributeName)) {
-      for (String externalId : ccrk.getAttributesMap().get(ionicExternalIdAttributeName)) {
-        if (this.externalIdToKeyId.get(externalId) == null) {
-          this.externalIdToKeyId.put(externalId, new HashSet());
-        }
-        this.externalIdToKeyId.get(externalId).add(ccrk.getId());
-      }
-    }
+  public TestAgent(TestKeyStore keystore) throws IonicException {
+    this(keystore, null, null);
   }
 
   @Override
@@ -146,30 +119,30 @@ public class TestAgent implements KeyServices {
       throws IonicException {
     // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/createkey/CreateKeysResponse.html
     CreateKeysResponse ccr = new CreateKeysResponse();
-    addKeyToResponse(new CreateKeysRequest.Key("1", 1, attributes, mutableAttributes), ccr);
+    addKeyToCreateKeyResponse(
+        new CreateKeysRequest.Key("1", 1, attributes, mutableAttributes), ccr);
     return ccr;
   }
 
   /*
    * Returns a https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/createkey/CreateKeysResponse.Key.html
    */
-  private void addKeyToResponse(CreateKeysRequest.Key key, CreateKeysResponse ccr)
+  private void addKeyToCreateKeyResponse(CreateKeysRequest.Key key, CreateKeysResponse ccr)
       throws IonicException {
     for (int ikey = 0; ikey < key.getQuantity(); ikey++) {
-      String keyId = this.generateKeyId();
       KeyObligationsMap obligations = new KeyObligationsMap();
       CreateKeysResponse.Key ccrk =
           new CreateKeysResponse.Key(
               key.getRefId(),
-              keyId,
-              this.genRandomBytes(AesCipher.KEY_BYTES),
+              "1", // Will be set for us in `addKey`
+              cryptoRng.rand(new byte[AesCipher.KEY_BYTES]),
               this.getActiveProfile().getDeviceId(),
               key.getAttributesMap(),
               key.getMutableAttributesMap(),
               obligations,
               this.origin);
+      ccrk = this.keystore.addKey(ccrk);
       ccr.add(ccrk);
-      this.addKeyToStore(ccrk);
     }
   }
 
@@ -177,7 +150,7 @@ public class TestAgent implements KeyServices {
   public CreateKeysResponse createKeys(CreateKeysRequest request) throws IonicException {
     CreateKeysResponse ccr = new CreateKeysResponse();
     for (CreateKeysRequest.Key key : request.getKeys()) {
-      this.addKeyToResponse(key, ccr);
+      this.addKeyToCreateKeyResponse(key, ccr);
     }
     return ccr;
   }
@@ -197,21 +170,45 @@ public class TestAgent implements KeyServices {
     return this.getKey(keyId, new MetadataMap());
   }
 
-  // Update response with key from this query
-  private void addKeyToResponse(
-      final String keyId, MetadataMap metadata, GetKeysResponse response) {
-    if (!this.keys.containsKey(keyId)) {
-      // Add an error and query result but not a key
-      // Calls to getKey will raise an exception?
-      // https://dev.ionic.com/sdk/errors
-      int clientError = SdkError.ISCRYPTO_OK;
-      int serverError = ServerError.PROCESSING_ERROR; // Better: 40030
-      String errorMessage = "Unknown key";
-      response.add(new GetKeysResponse.IonicError(keyId, clientError, serverError, errorMessage));
-      response.add(new GetKeysResponse.QueryResult(keyId, serverError, errorMessage));
+  /*
+  Add the response to an external id query to the response object.
+  */
+  private void addExternalIdKeyToGetKeyResponse(
+      final String externalId, MetadataMap metadata, GetKeysResponse response) {
+    // Accumulate list of keys
+    ArrayList<CreateKeysResponse.Key> keys = new ArrayList<CreateKeysResponse.Key>();
+    Set<String> keyIds = this.keystore.getKeyIdsForExternalId(externalId);
+    for (String keyId : keyIds) {
+      CreateKeysResponse.Key key = this.keystore.getKeyById(keyId);
+      if (keyId != null && key == null) {
+        // The key id is defined, but we can't find it
+        this.addMissingKeyErrorToResponse(keyId, response);
+      } else {
+        this.addSingleKeyToResponse(key, response);
+      }
     }
-    CreateKeysResponse.Key key = this.keys.get(keyId);
 
+    // Add a single query response for each external id query.
+    // No QueryResponse is returned unless there is an external id component to the query.
+    // The list may be empty.
+    List<String> mappedIdList = new ArrayList<String>(keyIds);
+    response.add(new GetKeysResponse.QueryResult(externalId, mappedIdList));
+  }
+
+  private void addMissingKeyErrorToResponse(String keyId, GetKeysResponse response) {
+    // Add an error and query result but not a key
+    // Calls to getKey will raise an exception?
+    // https://dev.ionic.com/sdk/errors
+    int serverError = ServerError.PROCESSING_ERROR; // Better: 40030
+    String errorMessage = "Unknown key";
+    response.add(
+        new GetKeysResponse.IonicError(keyId, SdkError.ISCRYPTO_OK, serverError, errorMessage));
+  }
+
+  /*
+   * Add a single key grabbed from the key store.
+   */
+  private void addSingleKeyToResponse(CreateKeysResponse.Key key, GetKeysResponse response) {
     response.add(
         new GetKeysResponse.Key(
             key.getId(),
@@ -223,29 +220,39 @@ public class TestAgent implements KeyServices {
             key.getOrigin(),
             key.getAttributesSigBase64FromServer(),
             key.getMutableAttributesSigBase64FromServer()));
-    // FIXME: Update this map of external id to key id
-    List<String> mappedIdList = new ArrayList<String>();
-    response.add(new GetKeysResponse.QueryResult(keyId, mappedIdList));
+  }
+
+  // Update response with key from this query
+  // No QueryResult objects are added for individual key ids
+  private void addKeyToGetKeyResponse(
+      final String keyId, MetadataMap metadata, GetKeysResponse response) {
+    CreateKeysResponse.Key key = this.keystore.getKeyById(keyId);
+    if (key == null) {
+      this.addMissingKeyErrorToResponse(keyId, response);
+    } else {
+      this.addSingleKeyToResponse(key, response);
+    }
   }
 
   @Override
   public GetKeysResponse getKey(String keyId, MetadataMap metadata) {
     GetKeysResponse response = new GetKeysResponse();
-    addKeyToResponse(keyId, metadata, response);
+    addKeyToGetKeyResponse(keyId, metadata, response);
     return response;
   }
 
+  /*
+  Handle a query which may be composed of both external ids and key ids by adding
+  QueryResults, Errors, and Keys to a GetKeysResponse object.
+  */
   @Override
   public GetKeysResponse getKeys(GetKeysRequest request) {
     GetKeysResponse response = new GetKeysResponse();
     for (String keyId : request.getKeyIds()) {
-      addKeyToResponse(keyId, request.getMetadata(), response);
+      addKeyToGetKeyResponse(keyId, request.getMetadata(), response);
     }
     for (String externalId : request.getExternalIds()) {
-      for (String keyId : this.externalIdToKeyId.get(externalId)) {
-        addKeyToResponse(keyId, request.getMetadata(), response);
-      }
-      // FIXME: Update the `mappedIdList` query stuff
+      addExternalIdKeyToGetKeyResponse(externalId, request.getMetadata(), response);
     }
     return response;
   }
