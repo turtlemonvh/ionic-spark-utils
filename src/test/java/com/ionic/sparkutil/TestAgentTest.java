@@ -3,8 +3,11 @@ package com.ionic.sparkutil;
 import org.junit.Test;
 import com.ionic.sdk.error.IonicException;
 import com.ionic.sdk.agent.key.KeyAttributesMap;
+import com.ionic.sdk.agent.data.MetadataMap;
 import com.ionic.sdk.agent.request.getkey.GetKeysRequest;
 import com.ionic.sdk.agent.request.getkey.GetKeysResponse;
+import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
+import com.ionic.sdk.agent.request.updatekey.UpdateKeysResponse;
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.ServerError;
 
@@ -114,6 +117,41 @@ public class TestAgentTest {
     assertTrue(qr.getErrorCode() == 0);
     GetKeysResponse.IonicError err = resp.getError(externalId);
     assertTrue(err == null);
+  }
+
+  @Test
+  public void testUpdateKey() throws IonicException {
+    TestAgent a = new TestAgent();
+    CreateKeysResponse ccr = a.createKey();
+    CreateKeysResponse.Key createdKey = ccr.getFirstKey();
+
+    // We got back a key
+    GetKeysResponse resp1 = a.getKey(createdKey.getId());
+    GetKeysResponse.Key fetchedKey1 = resp1.getKey(createdKey.getId());
+    assertTrue(fetchedKey1.getId() == createdKey.getId());
+    List<String> attrs_a = fetchedKey1.getMutableAttributesMap().get("a");
+    assertTrue(attrs_a == null);
+
+    // Update
+    UpdateKeysRequest.Key updatedKey = new UpdateKeysRequest.Key(fetchedKey1);
+    KeyAttributesMap attrs = new KeyAttributesMap();
+    ArrayList<String> attrVals = new ArrayList<String>();
+    attrVals.add("1");
+    attrs.put("a", attrVals);
+    updatedKey.setMutableAttributesMap(attrs);
+    UpdateKeysResponse resp = a.updateKey(updatedKey, new MetadataMap());
+
+    assertTrue(resp.getErrors().size() == 0);
+    assertTrue(resp.getKeys().size() == 1);
+
+    // Grab updated key
+    GetKeysResponse resp2 = a.getKey(createdKey.getId());
+    GetKeysResponse.Key fetchedKey2 = resp2.getKey(createdKey.getId());
+    assertTrue(fetchedKey2.getId() == createdKey.getId());
+
+    List<String> attrs_b = fetchedKey2.getMutableAttributesMap().get("a");
+    assertTrue(attrs_b.size() == 1);
+    assertTrue(attrs_b.get(0) == "1");
   }
 
   @Test

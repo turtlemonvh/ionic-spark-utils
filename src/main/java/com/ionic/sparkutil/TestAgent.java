@@ -42,7 +42,6 @@ import java.util.HashSet;
  */
 public class TestAgent implements KeyServices {
   public DeviceProfile profile;
-  public String origin;
   public TestKeyStore keystore;
   private final CryptoRng cryptoRng;
 
@@ -61,7 +60,6 @@ public class TestAgent implements KeyServices {
     if (origin == null) {
       origin = defaultHostname;
     }
-    this.origin = origin;
     if (deviceId == null) {
       final String uuid = UUID.randomUUID().toString();
       deviceId = Value.join(Value.DOT, this.keystore.keyspace, uuid.substring(0, 1), uuid);
@@ -75,7 +73,7 @@ public class TestAgent implements KeyServices {
     final byte[] aesCdEiKey = cryptoRng.rand(new byte[AesCipher.KEY_BYTES]);
     this.profile =
         new DeviceProfile(
-            profileName, creationTimestamp, deviceId, this.origin, aesCdIdcKey, aesCdEiKey);
+            profileName, creationTimestamp, deviceId, origin, aesCdIdcKey, aesCdEiKey);
   }
 
   public TestAgent() throws IonicException {
@@ -140,7 +138,7 @@ public class TestAgent implements KeyServices {
               key.getAttributesMap(),
               key.getMutableAttributesMap(),
               obligations,
-              this.origin);
+              this.profile.getServer());
       ccrk = this.keystore.addKey(ccrk);
       ccr.add(ccrk);
     }
@@ -259,12 +257,26 @@ public class TestAgent implements KeyServices {
 
   @Override
   public UpdateKeysResponse updateKeys(final UpdateKeysRequest request) throws IonicException {
-    throw new IonicException(SdkError.ISAGENT_NOTIMPLEMENTED);
+    UpdateKeysResponse resp = new UpdateKeysResponse();
+    for (UpdateKeysRequest.Key key : request.getKeys()) {
+      // For each, either add key or error
+      int respCode = this.keystore.updateKey(key);
+      if (respCode != ServerError.SERVER_OK) {
+        resp.add(new UpdateKeysResponse.IonicError(key.getId(), 0, respCode, "Error updating key"));
+      } else {
+        resp.add(
+            new UpdateKeysResponse.Key(key, this.profile.getDeviceId(), this.profile.getServer()));
+      }
+    }
+    return resp;
   }
 
   @Override
   public UpdateKeysResponse updateKey(final UpdateKeysRequest.Key key, final MetadataMap metadata)
       throws IonicException {
-    throw new IonicException(SdkError.ISAGENT_NOTIMPLEMENTED);
+    UpdateKeysRequest req = new UpdateKeysRequest();
+    req.addKey(key);
+    req.setMetadata(metadata);
+    return this.updateKeys(req);
   }
 }

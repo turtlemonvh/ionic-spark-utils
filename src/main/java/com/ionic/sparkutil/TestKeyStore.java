@@ -4,11 +4,16 @@ import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.IonicException;
 import com.ionic.sdk.core.rng.CryptoRng;
 import com.ionic.sdk.core.codec.Transcoder;
+import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
+import com.ionic.sdk.error.ServerError;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.Map.Entry;
 
 /*
  * TestKeyStore is a map based key store which is safe for concurrent access.
@@ -104,5 +109,43 @@ public class TestKeyStore {
     Set<String> keyIds = this.externalIdToKeyId.getOrDefault(externalId, new HashSet<String>());
     this.keyCreateModifyLock.readLock().unlock();
     return keyIds;
+  }
+
+  public int updateKey(UpdateKeysRequest.Key key) {
+    this.keyCreateModifyLock.writeLock().lock();
+
+    CreateKeysResponse.Key ccrk = this.keys.get(key.getId());
+    if (ccrk == null) {
+      // FIXME: Is this the correct error code for a missing key on modify?
+      return ServerError.KEY_INVALID_RESOURCE_NAME;
+    }
+
+    for (Entry<String, List<String>> attr : ccrk.getAttributesMap().entrySet()) {
+      if (key.getMutableAttributesMap().get(attr.getKey()) != null) {
+        // Attempting to set a mutable attribute with same value as a fixed attribute
+        return ServerError.KEY_INVALID_CATTR_MATTR;
+      }
+    }
+
+    ccrk.setMutableAttributes(key.getMutableAttributesMap());
+    ccrk.setMutableAttributesSigBase64FromServer(key.getMutableAttributesSigBase64FromServer());
+
+    // We ignore changes to the key bytes and origin fields
+    if (key.getAttributesSigBase64FromServer() != ccrk.getAttributesSigBase64FromServer()) {
+      return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
+    }
+    if (!key.getObligationsMap().equals(ccrk.getObligationsMap())) {
+      return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
+    }
+    if (!key.getAttributesMap().equals(ccrk.getAttributesMap())) {
+      return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
+    }
+
+    // I'm not sure if this is needed
+    this.keys.put(ccrk.getId(), ccrk);
+
+    this.keyCreateModifyLock.writeLock().unlock();
+
+    return ServerError.SERVER_OK;
   }
 }
