@@ -14,26 +14,23 @@ class TransformersTest extends FunSuite with DataFrameSuiteBase {
 
   import spark.implicits._
 
-  /*
-    Apply a transformer and check the output.
-
-    https://spark.apache.org/docs/2.3.0/
-    https://spark.apache.org/docs/2.3.0/api/scala/index.html#org.apache.spark.package
-    https://spark.apache.org/docs/2.3.0/api/scala/index.html#org.apache.spark.sql.Dataset
-    */
-  test("processKeyModifyGetRequest") {
+  test("encrypt") {
     val inputDF = Seq(
       ("bob", "tomato"),
       ("larry", "cucumber")).toDF("name", "plant_type")
 
-    val outputDF = inputDF.transform(Transformers.Encrypt("plant_type"))
-    val columnNames = outputDF.columns
-    assert(outputDF.count == 2)
+    // Note that passing in a shared keystore for the testagent doesn't work bc the testagent is not serializable
+    // FIXME: We need to do this better so we can encrypt AND decrypt
+    val outputDF = inputDF.transform(Transformers.Encrypt(
+      encryptCols = List("plant_type"),
+      decryptCols = List[String](),
+      agentFactory = () => { new TestAgent() }))
 
-    // Transform to an array for easy checking
-    val output = outputDF.head(2)
-    assert(output(0)(0) == "bob")
-    assert(output(0)(1) == "XXXXXXX")
+    // For now we just check that the data is the correct shape
+    val columnNames = outputDF.columns
+    outputDF.show
+    assert(outputDF.count == 2)
+    assert(outputDF.columns.size == 3)
   }
 
 }
