@@ -20,12 +20,10 @@ import com.ionic.sdk.error.SdkError;
 import com.ionic.sdk.error.ServerError;
 import com.ionic.sdk.core.date.DateTime;
 import com.ionic.sdk.core.value.Value;
-import com.ionic.sdk.core.rng.CryptoRng;
 import com.ionic.sdk.core.codec.Transcoder;
 import com.ionic.sdk.cipher.aes.AesCipher;
 
-import com.ionic.sparkutil.TestKeyStore;
-
+import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,10 +38,10 @@ import java.util.HashSet;
  * TestAgent is a mock based on KeyServices (https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/key/KeyServices.html).
  * Internals are exposed as public attributes for convenience in evaluating state in tests.
  */
-public class TestAgent implements KeyServices {
-  public DeviceProfile profile;
+public class TestAgent implements KeyServices, Serializable {
+  public SDeviceProfile profile;
   public TestKeyStore keystore;
-  private final CryptoRng cryptoRng;
+  private final SecureRandom rng;
 
   // Defaults
   private static final String defaultKeyspace = "ABCD";
@@ -71,14 +69,15 @@ public class TestAgent implements KeyServices {
       deviceId = Value.join(Value.DOT, this.keystore.keyspace, uuid.substring(0, 1), uuid);
     }
 
-    this.cryptoRng = new CryptoRng();
+    this.rng = new SecureRandom();
     // Initialize profile
     final String profileName = defaultProfileName;
     final long creationTimestamp = (System.currentTimeMillis() / DateTime.ONE_SECOND_MILLIS);
-    final byte[] aesCdIdcKey = cryptoRng.rand(new byte[AesCipher.KEY_BYTES]);
-    final byte[] aesCdEiKey = cryptoRng.rand(new byte[AesCipher.KEY_BYTES]);
+    final byte[] aesCdIdcKey = this.randBytes(AesCipher.KEY_BYTES);
+    final byte[] aesCdEiKey = this.randBytes(AesCipher.KEY_BYTES);
+
     this.profile =
-        new DeviceProfile(
+        new SDeviceProfile(
             profileName, creationTimestamp, deviceId, origin, aesCdIdcKey, aesCdEiKey);
   }
 
@@ -129,6 +128,16 @@ public class TestAgent implements KeyServices {
   }
 
   /*
+   * We don't use com.ionic.sdk.core.rng.CryptoRng because it is not serializable
+   *
+   */
+  private byte[] randBytes(int nbytes) {
+    byte bts[] = new byte[nbytes];
+    this.rng.nextBytes(bts);
+    return bts;
+  }
+
+  /*
    * Modifies a CreateKeysResponse object to add the created key. Also adds to the key store.
    */
   private void addKeyToCreateKeyResponse(CreateKeysRequest.Key key, CreateKeysResponse ccr)
@@ -149,7 +158,8 @@ public class TestAgent implements KeyServices {
           new CreateKeysResponse.Key(
               key.getRefId(),
               "1", // Will be set for us in `addKey`. `null` is not allowed.
-              cryptoRng.rand(new byte[AesCipher.KEY_BYTES]),
+              // cryptoRng.rand(new byte[AesCipher.KEY_BYTES]),
+              this.randBytes(AesCipher.KEY_BYTES),
               this.getActiveProfile().getDeviceId(),
               key.getAttributesMap(),
               key.getMutableAttributesMap(),

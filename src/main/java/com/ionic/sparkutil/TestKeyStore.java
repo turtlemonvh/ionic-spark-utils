@@ -2,11 +2,11 @@ package com.ionic.sparkutil;
 
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.IonicException;
-import com.ionic.sdk.core.rng.CryptoRng;
 import com.ionic.sdk.core.codec.Transcoder;
 import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
 import com.ionic.sdk.error.ServerError;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
@@ -19,13 +19,12 @@ import java.util.Map.Entry;
  * TestKeyStore is a map based key store which is safe for concurrent access.
  * Internals are exposed as public attributes for convenience in evaluating state in tests.
  */
-public class TestKeyStore {
+public class TestKeyStore implements Serializable {
 
   public String keyspace;
   private ReentrantReadWriteLock keyCreateModifyLock;
-  public HashMap<String, CreateKeysResponse.Key> keys;
+  public HashMap<String, SCreateKeysResponseKey> keys;
   public HashMap<String, Set<String>> externalIdToKeyId;
-  private final CryptoRng cryptoRng;
   private int currentKeyNum = 0;
 
   // Defaults
@@ -35,10 +34,9 @@ public class TestKeyStore {
   // Base constructor
   public TestKeyStore(String keyspace) throws IonicException {
     this.keyspace = keyspace;
-    this.cryptoRng = new CryptoRng();
 
     // Initialize keystore
-    this.keys = new HashMap<String, CreateKeysResponse.Key>();
+    this.keys = new HashMap<String, SCreateKeysResponseKey>();
     this.externalIdToKeyId = new HashMap<String, Set<String>>();
     this.keyCreateModifyLock = new ReentrantReadWriteLock();
   }
@@ -81,7 +79,7 @@ public class TestKeyStore {
     }
 
     // Add to keystore
-    this.keys.put(ccrk.getId(), ccrk);
+    this.keys.put(ccrk.getId(), SCreateKeysResponseKey.FromCreateKeysResponseKey(ccrk));
 
     // Update mapping of external ids to keys
     // TODO: Should mutable attribute setting of external id work?
@@ -102,9 +100,12 @@ public class TestKeyStore {
 
   public CreateKeysResponse.Key getKeyById(String keyId) {
     this.keyCreateModifyLock.readLock().lock();
-    CreateKeysResponse.Key key = this.keys.get(keyId);
+    SCreateKeysResponseKey key = this.keys.get(keyId);
     this.keyCreateModifyLock.readLock().unlock();
-    return key;
+    if (key == null) {
+      return null;
+    }
+    return key.toCreateKeysResponseKey();
   }
 
   public Set<String> getKeyIdsForExternalId(String externalId) {
@@ -117,7 +118,7 @@ public class TestKeyStore {
   public int updateKey(UpdateKeysRequest.Key key) {
     this.keyCreateModifyLock.writeLock().lock();
 
-    CreateKeysResponse.Key ccrk = this.keys.get(key.getId());
+    SCreateKeysResponseKey ccrk = this.keys.get(key.getId());
     if (ccrk == null) {
       // FIXME: Is this the correct error code for a missing key on modify?
       return ServerError.KEY_INVALID_RESOURCE_NAME;

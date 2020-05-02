@@ -19,12 +19,13 @@ class TransformersTest extends FunSuite with DataFrameSuiteBase {
       ("bob", "tomato"),
       ("larry", "cucumber")).toDF("name", "plant_type")
 
-    // Note that passing in a shared keystore for the testagent doesn't work bc the testagent is not serializable
-    // FIXME: We need to do this better so we can encrypt AND decrypt
+    // Note that we have to take some special steps to make this agent serializable
+    // In general we will likely simply create the agent inside each partition instead of passing around
+    val a = new TestAgent()
     val outputDF = inputDF.transform(Transformers.Encrypt(
       encryptCols = List("plant_type"),
       decryptCols = List[String](),
-      agentFactory = () => { new TestAgent() }))
+      agentFactory = () => { a }))
 
     // For now we just check that the data is the correct shape
     val columnNames = outputDF.columns
