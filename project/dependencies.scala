@@ -14,7 +14,9 @@ object Dependencies {
   )
 
   lazy val coreDeps = Seq(
-      "com.ionic" % "ionic-sdk" % "2.6.0"
+      "com.ionic" % "ionic-sdk" % "2.6.0",
+      "org.slf4j" % "slf4j-api" % "1.7.30",
+      "org.slf4j" % "slf4j-simple" % "1.7.30",
   )
 
   /**

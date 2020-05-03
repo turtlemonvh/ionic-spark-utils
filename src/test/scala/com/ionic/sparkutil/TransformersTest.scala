@@ -35,16 +35,37 @@ class TransformersTest extends FunSuite with DataFrameSuiteBase {
     val cc = new ChunkCipherV3(a)
     cc.encrypt("hello")
 
-    val outputDF = inputDF.transform(Transformers.Encrypt(
+    inputDF.printSchema
+    val encryptedDF = inputDF.transform(Transformers.Encrypt(
       encryptCols = List("plant_type"),
-      decryptCols = List[String](),
+      decryptCols = List(),
       agentFactory = () => { a }))
 
     // For now we just check that the data is the correct shape
-    val columnNames = outputDF.columns
-    outputDF.show
-    assert(outputDF.count == 2)
-    assert(outputDF.columns.size == 3)
+    encryptedDF.persist
+    encryptedDF.show
+    encryptedDF.printSchema
+    assert(encryptedDF.count == 2)
+    assert(encryptedDF.columns.size == 3)
+
+    // Decrypt
+    // FIXME: Seems to fail when not calling persist on the first dataframe
+    val decryptedDF = encryptedDF
+      .drop("plant_type")
+      .withColumnRenamed("ionic_enc_plant_type", "plant_type")
+      .transform(Transformers.Encrypt(
+        encryptCols = List(),
+        decryptCols = List("plant_type"),
+        agentFactory = () => { a }))
+
+    // Check shape
+    decryptedDF.persist
+    decryptedDF.show
+    decryptedDF.printSchema
+    println(decryptedDF.take(1)(0).schema)
+    assert(decryptedDF.count == 2)
+    assert(decryptedDF.columns.size == 3)
+
   }
 
 }

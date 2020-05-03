@@ -4,11 +4,14 @@ import org.apache.spark.sql.functions.{ udf, col }
 import org.apache.spark.sql.{ DataFrame, Column, Row }
 import org.apache.spark.sql.types.{ StringType, StructField, StructType }
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.slf4j.LoggerFactory
 
 import com.ionic.sdk.key.KeyServices
 import com.ionic.sdk.agent.cipher.chunk.ChunkCipherV3
 
 object Transformers {
+
+  val logger = LoggerFactory.getLogger(this.getClass.getName)
 
   /*
    * Encrypt or decrypt a set of columns on a dataframe object.
@@ -68,6 +71,10 @@ object Transformers {
     def transformRow(
       row: Row,
       cc: ChunkCipherV3): Row = {
+
+      logger.debug(s"transformRow: Row schema: ${row.schema}")
+      logger.debug(s"transformRow: Row seq: ${row.toSeq}")
+      logger.debug(s"transformRow: Row string: ${row.toString}")
 
       // Take lists of string column names and turn into sets of column values
 
