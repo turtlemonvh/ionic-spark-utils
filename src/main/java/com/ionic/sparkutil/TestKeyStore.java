@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Map.Entry;
+import java.util.Base64;
 
 /*
  * TestKeyStore is a map based key store which is safe for concurrent access.
@@ -23,7 +24,7 @@ public class TestKeyStore implements Serializable {
 
   public String keyspace;
   private ReentrantReadWriteLock keyCreateModifyLock;
-  public HashMap<String, SCreateKeysResponseKey> keys;
+  public HashMap<String, SAgentKey> keys; // SCreateKeysResponseKey
   public HashMap<String, Set<String>> externalIdToKeyId;
   private int currentKeyNum = 0;
 
@@ -36,7 +37,7 @@ public class TestKeyStore implements Serializable {
     this.keyspace = keyspace;
 
     // Initialize keystore
-    this.keys = new HashMap<String, SCreateKeysResponseKey>();
+    this.keys = new HashMap<String, SAgentKey>();
     this.externalIdToKeyId = new HashMap<String, Set<String>>();
     this.keyCreateModifyLock = new ReentrantReadWriteLock();
   }
@@ -78,8 +79,7 @@ public class TestKeyStore implements Serializable {
       ccrk.setId(this.generateNextKeyId());
     }
 
-    // Add to keystore
-    this.keys.put(ccrk.getId(), SCreateKeysResponseKey.FromCreateKeysResponseKey(ccrk));
+    this.keys.put(ccrk.getId(), new SAgentKey(ccrk));
 
     // Update mapping of external ids to keys
     // TODO: Should mutable attribute setting of external id work?
@@ -100,12 +100,14 @@ public class TestKeyStore implements Serializable {
 
   public CreateKeysResponse.Key getKeyById(String keyId) {
     this.keyCreateModifyLock.readLock().lock();
-    SCreateKeysResponseKey key = this.keys.get(keyId);
+    SAgentKey key = this.keys.get(keyId);
     this.keyCreateModifyLock.readLock().unlock();
     if (key == null) {
       return null;
     }
-    return key.toCreateKeysResponseKey();
+    CreateKeysResponse.Key ccrk = new CreateKeysResponse.Key();
+    key.copyAttrs(ccrk);
+    return ccrk;
   }
 
   public Set<String> getKeyIdsForExternalId(String externalId) {
@@ -118,36 +120,37 @@ public class TestKeyStore implements Serializable {
   public int updateKey(UpdateKeysRequest.Key key) {
     this.keyCreateModifyLock.writeLock().lock();
 
-    SCreateKeysResponseKey ccrk = this.keys.get(key.getId());
-    if (ccrk == null) {
+    SAgentKey skey = this.keys.get(key.getId());
+    if (skey == null) {
       // FIXME: Is this the correct error code for a missing key on modify?
       return ServerError.KEY_INVALID_RESOURCE_NAME;
     }
 
-    for (Entry<String, List<String>> attr : ccrk.getAttributesMap().entrySet()) {
+    for (Entry<String, List<String>> attr : skey.getAttributesMap().entrySet()) {
       if (key.getMutableAttributesMap().get(attr.getKey()) != null) {
         // Attempting to set a mutable attribute with same value as a fixed attribute
         return ServerError.KEY_INVALID_CATTR_MATTR;
       }
     }
 
-    ccrk.setMutableAttributes(key.getMutableAttributesMap());
-    ccrk.setMutableAttributesSigBase64FromServer(key.getMutableAttributesSigBase64FromServer());
+    skey.setMutableAttributesMap(key.getMutableAttributesMap());
+    skey.setMutableAttributesSigBase64FromServer(key.getMutableAttributesSigBase64FromServer());
 
     // We ignore changes to the key bytes and origin fields
-    if (key.getAttributesSigBase64FromServer() != ccrk.getAttributesSigBase64FromServer()) {
+    if (key.getAttributesSigBase64FromServer() != skey.getAttributesSigBase64FromServer()) {
       return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
     }
-    if (!key.getObligationsMap().equals(ccrk.getObligationsMap())) {
+    if (!key.getObligationsMap().equals(skey.getObligationsMap())) {
       return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
     }
-    if (!key.getAttributesMap().equals(ccrk.getAttributesMap())) {
+    if (!key.getAttributesMap().equals(skey.getAttributesMap())) {
       return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
     }
 
     // I'm not sure if this is needed
-    this.keys.put(ccrk.getId(), ccrk);
+    this.keys.put(skey.getId(), skey);
 
+    // FIXME: Put in a try...finally
     this.keyCreateModifyLock.writeLock().unlock();
 
     return ServerError.SERVER_OK;

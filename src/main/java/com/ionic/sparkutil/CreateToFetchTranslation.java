@@ -121,7 +121,9 @@ public class CreateToFetchTranslation extends KeyServicesWrapper
       Integer choice_idx = rand.nextInt(allMatchingIds.size());
       Integer current_idx = 0;
       for (String id : allMatchingIds) {
-        if (current_idx == choice_idx) matchedIds.add(id);
+        if (current_idx == choice_idx) {
+          matchedIds.add(id);
+        }
         current_idx++;
       }
     }
@@ -147,9 +149,8 @@ public class CreateToFetchTranslation extends KeyServicesWrapper
         refIdToKeyIds.put(refId, new HashSet());
 
         // We always translate into a fetch by id, but returned keys will always have the same
-        // external id
-        // as the request because their attributes are part of the cache key, and the external id is
-        // an attribute.
+        // external id as the request because their attributes are part of the cache key, and the
+        // external id is an attribute.
         for (String keyid : this.getFromCache(key)) {
           fetchReq.add(keyid);
           refIdToKeyIds.get(refId).add(keyid);
@@ -162,24 +163,32 @@ public class CreateToFetchTranslation extends KeyServicesWrapper
       // Assemble based on ref ids
       for (Map.Entry<String, Set<String>> entry : refIdToKeyIds.entrySet()) {
         String refId = entry.getKey();
+
         for (String keyId : entry.getValue()) {
           GetKeysResponse.Key src = gkr.getKey(keyId);
           CreateKeysResponse.Key dest = new CreateKeysResponse.Key();
           dest.setRefId(refId);
+          dest.setDeviceId(this.getActiveProfile().getDeviceId());
+          dest.setOrigin(this.getActiveProfile().getServer());
+
+          if (src == null) {
+            throw new IonicException(
+                SdkError.ISAGENT_UNKNOWN,
+                "Unexpected null value for key with keyId=" + keyId + ", refId=" + refId + ".");
+          }
+
           // Copy all attributes
           // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/createkey/CreateKeysResponse.Key.html
           // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/getkey/GetKeysResponse.Key.html
-          dest.setDeviceId(src.getDeviceId());
-          dest.setAttributesMap(src.getAttributesMap());
-          dest.setAttributesSigBase64FromServer(src.getAttributesSigBase64FromServer());
           dest.setId(src.getId());
           dest.setKey(src.getKey());
+          dest.setAttributesMap(src.getAttributesMap());
+          dest.setAttributesSigBase64FromServer(src.getAttributesSigBase64FromServer());
           dest.setMutableAttributesMap(src.getMutableAttributesMap());
           dest.setMutableAttributesMapFromServer(src.getMutableAttributesMapFromServer());
           dest.setMutableAttributesSigBase64FromServer(
               src.getMutableAttributesSigBase64FromServer());
           dest.setObligationsMap(src.getObligationsMap());
-          dest.setOrigin(src.getOrigin());
 
           // Add to the response
           ckr.add(dest);

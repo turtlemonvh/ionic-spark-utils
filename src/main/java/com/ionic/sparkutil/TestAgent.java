@@ -15,6 +15,7 @@ import com.ionic.sdk.agent.request.getkey.GetKeysRequest;
 import com.ionic.sdk.agent.request.getkey.GetKeysResponse;
 import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
 import com.ionic.sdk.agent.request.updatekey.UpdateKeysResponse;
+import com.ionic.sdk.agent.service.IDC;
 import com.ionic.sdk.error.IonicException;
 import com.ionic.sdk.error.SdkError;
 import com.ionic.sdk.error.ServerError;
@@ -123,7 +124,7 @@ public class TestAgent implements KeyServices, Serializable {
     // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/createkey/CreateKeysResponse.html
     CreateKeysResponse ccr = new CreateKeysResponse();
     addKeyToCreateKeyResponse(
-        new CreateKeysRequest.Key("1", 1, attributes, mutableAttributes), ccr);
+        new CreateKeysRequest.Key(IDC.Payload.REF, 1, attributes, mutableAttributes), ccr);
     return ccr;
   }
 
@@ -181,7 +182,7 @@ public class TestAgent implements KeyServices, Serializable {
 
   @Override
   public DeviceProfile getActiveProfile() {
-    return this.profile;
+    return this.profile.toDeviceProfile();
   }
 
   @Override
@@ -243,7 +244,7 @@ public class TestAgent implements KeyServices, Serializable {
         new GetKeysResponse.Key(
             key.getId(),
             key.getKey(),
-            key.getDeviceId(),
+            this.getActiveProfile().getDeviceId(),
             key.getAttributesMap(),
             key.getMutableAttributesMap(),
             key.getObligationsMap(),
