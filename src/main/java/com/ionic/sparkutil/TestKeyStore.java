@@ -2,11 +2,11 @@ package com.ionic.sparkutil;
 
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.IonicException;
-import com.ionic.sdk.core.rng.CryptoRng;
 import com.ionic.sdk.core.codec.Transcoder;
 import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
 import com.ionic.sdk.error.ServerError;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
@@ -14,18 +14,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Map.Entry;
+import java.util.Base64;
 
 /*
  * TestKeyStore is a map based key store which is safe for concurrent access.
  * Internals are exposed as public attributes for convenience in evaluating state in tests.
  */
-public class TestKeyStore {
+public class TestKeyStore implements Serializable {
 
   public String keyspace;
   private ReentrantReadWriteLock keyCreateModifyLock;
-  public HashMap<String, CreateKeysResponse.Key> keys;
+  public HashMap<String, SAgentKey> keys; // SCreateKeysResponseKey
   public HashMap<String, Set<String>> externalIdToKeyId;
-  private final CryptoRng cryptoRng;
   private int currentKeyNum = 0;
 
   // Defaults
@@ -35,10 +35,9 @@ public class TestKeyStore {
   // Base constructor
   public TestKeyStore(String keyspace) throws IonicException {
     this.keyspace = keyspace;
-    this.cryptoRng = new CryptoRng();
 
     // Initialize keystore
-    this.keys = new HashMap<String, CreateKeysResponse.Key>();
+    this.keys = new HashMap<String, SAgentKey>();
     this.externalIdToKeyId = new HashMap<String, Set<String>>();
     this.keyCreateModifyLock = new ReentrantReadWriteLock();
   }
@@ -80,8 +79,7 @@ public class TestKeyStore {
       ccrk.setId(this.generateNextKeyId());
     }
 
-    // Add to keystore
-    this.keys.put(ccrk.getId(), ccrk);
+    this.keys.put(ccrk.getId(), new SAgentKey(ccrk));
 
     // Update mapping of external ids to keys
     // TODO: Should mutable attribute setting of external id work?
@@ -102,9 +100,14 @@ public class TestKeyStore {
 
   public CreateKeysResponse.Key getKeyById(String keyId) {
     this.keyCreateModifyLock.readLock().lock();
-    CreateKeysResponse.Key key = this.keys.get(keyId);
+    SAgentKey key = this.keys.get(keyId);
     this.keyCreateModifyLock.readLock().unlock();
-    return key;
+    if (key == null) {
+      return null;
+    }
+    CreateKeysResponse.Key ccrk = new CreateKeysResponse.Key();
+    key.copyAttrs(ccrk);
+    return ccrk;
   }
 
   public Set<String> getKeyIdsForExternalId(String externalId) {
@@ -117,36 +120,37 @@ public class TestKeyStore {
   public int updateKey(UpdateKeysRequest.Key key) {
     this.keyCreateModifyLock.writeLock().lock();
 
-    CreateKeysResponse.Key ccrk = this.keys.get(key.getId());
-    if (ccrk == null) {
+    SAgentKey skey = this.keys.get(key.getId());
+    if (skey == null) {
       // FIXME: Is this the correct error code for a missing key on modify?
       return ServerError.KEY_INVALID_RESOURCE_NAME;
     }
 
-    for (Entry<String, List<String>> attr : ccrk.getAttributesMap().entrySet()) {
+    for (Entry<String, List<String>> attr : skey.getAttributesMap().entrySet()) {
       if (key.getMutableAttributesMap().get(attr.getKey()) != null) {
         // Attempting to set a mutable attribute with same value as a fixed attribute
         return ServerError.KEY_INVALID_CATTR_MATTR;
       }
     }
 
-    ccrk.setMutableAttributes(key.getMutableAttributesMap());
-    ccrk.setMutableAttributesSigBase64FromServer(key.getMutableAttributesSigBase64FromServer());
+    skey.setMutableAttributesMap(key.getMutableAttributesMap());
+    skey.setMutableAttributesSigBase64FromServer(key.getMutableAttributesSigBase64FromServer());
 
     // We ignore changes to the key bytes and origin fields
-    if (key.getAttributesSigBase64FromServer() != ccrk.getAttributesSigBase64FromServer()) {
+    if (key.getAttributesSigBase64FromServer() != skey.getAttributesSigBase64FromServer()) {
       return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
     }
-    if (!key.getObligationsMap().equals(ccrk.getObligationsMap())) {
+    if (!key.getObligationsMap().equals(skey.getObligationsMap())) {
       return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
     }
-    if (!key.getAttributesMap().equals(ccrk.getAttributesMap())) {
+    if (!key.getAttributesMap().equals(skey.getAttributesMap())) {
       return ServerError.KEY_MODIFY_FIXED_ATTRIBUTE;
     }
 
     // I'm not sure if this is needed
-    this.keys.put(ccrk.getId(), ccrk);
+    this.keys.put(skey.getId(), skey);
 
+    // FIXME: Put in a try...finally
     this.keyCreateModifyLock.writeLock().unlock();
 
     return ServerError.SERVER_OK;
