@@ -20,7 +20,7 @@ import java.util.Base64;
  * TestKeyStore is a map based key store which is safe for concurrent access.
  * Internals are exposed as public attributes for convenience in evaluating state in tests.
  */
-public class TestKeyStore implements Serializable {
+public class TestKeyStore implements KeyStore, Serializable {
 
   public String keyspace;
   private ReentrantReadWriteLock keyCreateModifyLock;
@@ -56,46 +56,48 @@ public class TestKeyStore implements Serializable {
     return bts;
   }
 
-  // * Generate the next key id.
-  /* No locking around this method.
-  /* Expects to be called in addKeyToStore which is guarded by a lock.
+  public String getKeySpace() {
+    return this.keyspace;
+  }
+
+  /* Generate the next key id.
+  /* Not threadsafe. Expects to be called in `addKey`, which is guarded by a lock.
   */
-  private String generateNextKeyId() throws IonicException {
+  private String generateNextKeyId() {
     this.currentKeyNum++;
     final byte[] keyNum = this.intToBytes(this.currentKeyNum, keyIdLength);
     return (this.keyspace + this.base64UrlSafeEncode(keyNum)).substring(0, 4 + keyIdLength);
   }
 
-  /* Add a single key to store, assigning a new id to the key if the key id is null.
+  /* Add a single key to the store.
   /* Also updates the external id index.
-  /* Guarded by a lock to prevent concurrent modification of the key store.
+  /* Thread safe.
   */
-  public CreateKeysResponse.Key addKey(CreateKeysResponse.Key ccrk, boolean shouldGenerateKeyId)
-      throws IonicException {
+  public CreateKeysResponse.Key addKey(CreateKeysResponse.Key key) {
     this.keyCreateModifyLock.writeLock().lock();
 
-    // Overwrite the key id
-    if (shouldGenerateKeyId) {
-      ccrk.setId(this.generateNextKeyId());
+    // Optionally set key id
+    if (key.getId() == "") {
+      key.setId(this.generateNextKeyId());
     }
 
-    this.keys.put(ccrk.getId(), new SAgentKey(ccrk));
+    this.keys.put(key.getId(), new SAgentKey(key));
 
     // Update mapping of external ids to keys
     // TODO: Should mutable attribute setting of external id work?
-    if (ccrk.getAttributesMap().containsKey(ionicExternalIdAttributeName)) {
-      for (String externalId : ccrk.getAttributesMap().get(ionicExternalIdAttributeName)) {
+    if (key.getAttributesMap().containsKey(ionicExternalIdAttributeName)) {
+      for (String externalId : key.getAttributesMap().get(ionicExternalIdAttributeName)) {
         if (this.externalIdToKeyId.get(externalId) == null) {
           this.externalIdToKeyId.put(externalId, new HashSet());
         }
-        this.externalIdToKeyId.get(externalId).add(ccrk.getId());
+        this.externalIdToKeyId.get(externalId).add(key.getId());
       }
     }
 
     this.keyCreateModifyLock.writeLock().unlock();
 
     // Return possibly modified key
-    return ccrk;
+    return key;
   }
 
   public CreateKeysResponse.Key getKeyById(String keyId) {

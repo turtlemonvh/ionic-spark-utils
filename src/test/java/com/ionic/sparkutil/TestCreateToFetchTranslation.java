@@ -10,18 +10,18 @@ import static org.junit.Assert.*;
 public class TestCreateToFetchTranslation {
   @Test
   public void testCreateKey() throws IonicException {
-    TestAgent testAgent = new TestAgent();
-    CreateToFetchTranslation wrapped = new CreateToFetchTranslation(testAgent);
+    TestAgent a = new TestAgent();
+    CreateToFetchTranslation wrapped = new CreateToFetchTranslation(a);
 
     CreateKeysResponse ccr1 = wrapped.createKey();
-    assertEquals(testAgent.keystore.keys.size(), 1);
+    assertEquals(((TestKeyStore) a.keystore).keys.size(), 1);
     String firstId = ccr1.getFirstKey().getId();
 
     wrapped.makeImmutable();
 
     // Creates shoul result in a fetch of the same key
     CreateKeysResponse ccr2 = wrapped.createKey();
-    assertEquals(testAgent.keystore.keys.size(), 1);
+    assertEquals(((TestKeyStore) a.keystore).keys.size(), 1);
     assertEquals(ccr2.getFirstKey().getId(), firstId);
   }
 }

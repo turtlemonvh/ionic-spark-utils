@@ -39,9 +39,9 @@ import java.util.HashSet;
  * TestAgent is a mock based on KeyServices (https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/key/KeyServices.html).
  * Internals are exposed as public attributes for convenience in evaluating state in tests.
  */
-public class TestAgent implements KeyServices, Serializable {
+public class TestAgent implements KeyServicesMinimal, Serializable {
   public SDeviceProfile profile;
-  public TestKeyStore keystore;
+  public KeyStore keystore;
   private final SecureRandom rng;
 
   // Defaults
@@ -56,7 +56,7 @@ public class TestAgent implements KeyServices, Serializable {
   public int clientErrorState = 0;
 
   // Base constructor
-  public TestAgent(TestKeyStore keystore, String deviceId, String origin) throws IonicException {
+  public TestAgent(KeyStore keystore, String deviceId, String origin) throws IonicException {
     // Handle changing nulls to defaults
     if (keystore == null) {
       keystore = new TestKeyStore(defaultKeyspace);
@@ -67,7 +67,7 @@ public class TestAgent implements KeyServices, Serializable {
     }
     if (deviceId == null) {
       final String uuid = UUID.randomUUID().toString();
-      deviceId = Value.join(Value.DOT, this.keystore.keyspace, uuid.substring(0, 1), uuid);
+      deviceId = Value.join(Value.DOT, this.keystore.getKeySpace(), uuid.substring(0, 1), uuid);
     }
 
     this.rng = new SecureRandom();
@@ -86,51 +86,12 @@ public class TestAgent implements KeyServices, Serializable {
     this(new TestKeyStore(defaultKeyspace), null, null);
   }
 
-  public TestAgent(TestKeyStore keystore) throws IonicException {
+  public TestAgent(KeyStore keystore) throws IonicException {
     this(keystore, null, null);
-  }
-
-  @Override
-  public CreateKeysResponse createKey() throws IonicException {
-    return this.createKey(new KeyAttributesMap(), new KeyAttributesMap(), new MetadataMap());
-  }
-
-  @Override
-  public CreateKeysResponse createKey(KeyAttributesMap attributes) throws IonicException {
-    return this.createKey(attributes, new KeyAttributesMap(), new MetadataMap());
-  }
-
-  @Override
-  public CreateKeysResponse createKey(
-      KeyAttributesMap attributes, KeyAttributesMap mutableAttributes) throws IonicException {
-    return this.createKey(attributes, mutableAttributes, new MetadataMap());
-  }
-
-  @Override
-  public CreateKeysResponse createKey(KeyAttributesMap attributes, MetadataMap metadata)
-      throws IonicException {
-    return this.createKey(attributes, new KeyAttributesMap(), metadata);
-  }
-
-  @Override
-  public CreateKeysResponse createKey(MetadataMap metadata) throws IonicException {
-    return this.createKey(new KeyAttributesMap(), new KeyAttributesMap(), metadata);
-  }
-
-  @Override
-  public CreateKeysResponse createKey(
-      KeyAttributesMap attributes, KeyAttributesMap mutableAttributes, MetadataMap metadata)
-      throws IonicException {
-    // https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/createkey/CreateKeysResponse.html
-    CreateKeysResponse ccr = new CreateKeysResponse();
-    addKeyToCreateKeyResponse(
-        new CreateKeysRequest.Key(IDC.Payload.REF, 1, attributes, mutableAttributes), ccr);
-    return ccr;
   }
 
   /*
    * We don't use com.ionic.sdk.core.rng.CryptoRng because it is not serializable
-   *
    */
   private byte[] randBytes(int nbytes) {
     byte bts[] = new byte[nbytes];
@@ -158,15 +119,14 @@ public class TestAgent implements KeyServices, Serializable {
       CreateKeysResponse.Key ccrk =
           new CreateKeysResponse.Key(
               key.getRefId(),
-              "1", // Will be set for us in `addKey`. `null` is not allowed.
-              // cryptoRng.rand(new byte[AesCipher.KEY_BYTES]),
+              "", // Will be set for us in `addKey`
               this.randBytes(AesCipher.KEY_BYTES),
               this.getActiveProfile().getDeviceId(),
               key.getAttributesMap(),
               key.getMutableAttributesMap(),
               obligations,
               this.profile.getServer());
-      ccrk = this.keystore.addKey(ccrk, true);
+      ccrk = this.keystore.addKey(ccrk);
       ccr.add(ccrk);
     }
   }
@@ -188,11 +148,6 @@ public class TestAgent implements KeyServices, Serializable {
   @Override
   public boolean hasActiveProfile() {
     return true;
-  }
-
-  @Override
-  public GetKeysResponse getKey(String keyId) {
-    return this.getKey(keyId, new MetadataMap());
   }
 
   /*
@@ -271,13 +226,6 @@ public class TestAgent implements KeyServices, Serializable {
     }
   }
 
-  @Override
-  public GetKeysResponse getKey(String keyId, MetadataMap metadata) {
-    GetKeysResponse response = new GetKeysResponse();
-    addKeyToGetKeyResponse(keyId, metadata, response);
-    return response;
-  }
-
   /*
   Handle a query which may be composed of both external ids and key ids by adding
   QueryResults, Errors, and Keys to a GetKeysResponse object.
@@ -316,14 +264,5 @@ public class TestAgent implements KeyServices, Serializable {
       }
     }
     return resp;
-  }
-
-  @Override
-  public UpdateKeysResponse updateKey(final UpdateKeysRequest.Key key, final MetadataMap metadata)
-      throws IonicException {
-    UpdateKeysRequest req = new UpdateKeysRequest();
-    req.addKey(key);
-    req.setMetadata(metadata);
-    return this.updateKeys(req);
   }
 }
