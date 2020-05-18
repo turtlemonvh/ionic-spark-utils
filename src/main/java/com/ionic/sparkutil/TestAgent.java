@@ -35,6 +35,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashSet;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /*
  * TestAgent is a mock based on KeyServices (https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/key/KeyServices.html).
  * Internals are exposed as public attributes for convenience in evaluating state in tests.
@@ -43,6 +46,8 @@ public class TestAgent implements KeyServicesMinimal, Serializable {
   public SDeviceProfile profile;
   public KeyStore keystore;
   private final SecureRandom rng;
+
+  final Logger logger = LoggerFactory.getLogger(TestAgent.class);
 
   // Defaults
   private static final String defaultKeyspace = "ABCD";
@@ -133,6 +138,7 @@ public class TestAgent implements KeyServicesMinimal, Serializable {
 
   @Override
   public CreateKeysResponse createKeys(CreateKeysRequest request) throws IonicException {
+    logger.info("Calling createKeys: requesting " + request.getKeys().size() + " keys.");
     CreateKeysResponse ccr = new CreateKeysResponse();
     for (CreateKeysRequest.Key key : request.getKeys()) {
       this.addKeyToCreateKeyResponse(key, ccr);
@@ -232,6 +238,12 @@ public class TestAgent implements KeyServicesMinimal, Serializable {
   */
   @Override
   public GetKeysResponse getKeys(GetKeysRequest request) {
+    logger.info(
+        "Calling getKeys: requesting "
+            + request.getKeyIds().size()
+            + " key ids and "
+            + request.getExternalIds().size()
+            + " external ids.");
     GetKeysResponse response = new GetKeysResponse();
     for (String keyId : request.getKeyIds()) {
       addKeyToGetKeyResponse(keyId, request.getMetadata(), response);
@@ -244,6 +256,7 @@ public class TestAgent implements KeyServicesMinimal, Serializable {
 
   @Override
   public UpdateKeysResponse updateKeys(final UpdateKeysRequest request) throws IonicException {
+    logger.info("Calling updateKeys: updating " + request.getKeys().size() + " keys.");
     UpdateKeysResponse resp = new UpdateKeysResponse();
     for (UpdateKeysRequest.Key key : request.getKeys()) {
       // For each, either add key or error
