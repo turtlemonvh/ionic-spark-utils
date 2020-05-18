@@ -1,5 +1,7 @@
 # Ionic Spark Util
 
+[![CircleCI](https://circleci.com/gh/turtlemonvh/ionic-spark-utils.svg?style=svg)](https://circleci.com/gh/turtlemonvh/ionic-spark-utils)
+
 A set of utilities for working with Ionic encryption in Spark.
 
 Main components include
@@ -25,14 +27,14 @@ $ sbt
 > test
 # Get a list of all tests
 > show test:definedTests
+# Run a subset of tests
+> testOnly com.ionic.sparkutil.TestAgentTest
 # Reload after changes to build.sbt and friends
 > reload
 ```
 
-Note that junit tests are often skipped by sbt. Running `clean` seems to consistently fix this behavior.
+Note that junit tests are often skipped by sbt. Running `clean` seems to consistently fix this behavior.  Test results are dumped in `target/test-reports/*.xml`.
 
 ## Credits
 
 * Project bootstrapped via: https://github.com/holdenk/sparkProjectTemplate.g8
-
-
