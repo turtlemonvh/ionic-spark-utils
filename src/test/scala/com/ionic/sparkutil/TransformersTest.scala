@@ -23,7 +23,7 @@ class TransformersTest extends FunSuite with DataFrameSuiteBase {
 
     // Note that we have to take some special steps to make this agent serializable
     // In general we will likely simply create the agent inside each partition instead of passing around
-    val a = new CreateToFetchTranslation(new TestAgent())
+    val a = new KeyServicesCache(new TestAgent())
     for (i <- 1 to 10) {
       // Create some keys
       a.createKey()

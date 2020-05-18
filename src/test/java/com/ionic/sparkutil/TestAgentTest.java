@@ -19,9 +19,9 @@ import java.util.List;
 public class TestAgentTest {
   @Test
   public void testCreateKey() throws IonicException {
-    TestAgent testAgent = new TestAgent();
-    testAgent.createKey();
-    assertTrue(testAgent.keystore.keys.size() == 1);
+    TestAgent a = new TestAgent();
+    a.createKey();
+    assertEquals(((TestKeyStore) a.keystore).keys.size(), 1);
   }
 
   @Test
@@ -44,7 +44,7 @@ public class TestAgentTest {
     assertTrue(err == null);
 
     // Keystore state looks reasonable
-    assertTrue(a.keystore.keys.size() == 1);
+    assertEquals(((TestKeyStore) a.keystore).keys.size(), 1);
   }
 
   @Test
@@ -75,7 +75,7 @@ public class TestAgentTest {
     assertTrue(err == null);
 
     // Keystore state looks reasonable
-    assertTrue(a.keystore.keys.size() == 1);
+    assertEquals(((TestKeyStore) a.keystore).keys.size(), 1);
   }
 
   @Test
@@ -213,7 +213,7 @@ public class TestAgentTest {
     // Set client error
     a.clientErrorState = SdkError.ISAGENT_ERROR;
 
-    // We got back a key, but its null (when accessed via map)
+    // We got back a key, but it's null (when accessed via map)
     GetKeysResponse resp1 = a.getKey(createdKey.getId());
     GetKeysResponse.Key fetchedKey1 = resp1.getKey(createdKey.getId());
     assertTrue(fetchedKey1 == null);
@@ -232,7 +232,7 @@ public class TestAgentTest {
     // Set server error
     a.serverErrorState = ServerError.INTERNAL_ERROR;
 
-    // We got back a key, but its null (when accessed via map)
+    // We got back a key, but it's null (when accessed via map)
     GetKeysResponse resp2 = a.getKey(createdKey.getId());
     GetKeysResponse.Key fetchedKey2 = resp2.getKey(createdKey.getId());
     assertTrue(fetchedKey2 == null);

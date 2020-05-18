@@ -27,7 +27,9 @@ import java.io.Serializable;
  * AgentKey is not serializable
  * https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/key/AgentKey.html
  */
+
 public class SAgentKey implements Serializable, KeyBase, KeyMetadata {
+
   private String id;
   private byte[] key;
   private String origin;
@@ -57,6 +59,20 @@ public class SAgentKey implements Serializable, KeyBase, KeyMetadata {
     this.setObligationsMap(src.getObligationsMap());
   }
 
+  // Copy between two agentkeys
+  public static void copyAttrs(AgentKey src, AgentKey dest) {
+    dest.setId(src.getId());
+    dest.setKey(src.getKey());
+    dest.setOrigin(src.getOrigin());
+    dest.setAttributesMap(src.getAttributesMap());
+    dest.setAttributesSigBase64FromServer(src.getAttributesSigBase64FromServer());
+    dest.setMutableAttributesMap(src.getMutableAttributesMap());
+    dest.setMutableAttributesMapFromServer(src.getMutableAttributesMapFromServer());
+    dest.setMutableAttributesSigBase64FromServer(src.getMutableAttributesSigBase64FromServer());
+    dest.setObligationsMap(src.getObligationsMap());
+  }
+
+  // Copy attributes into a an AgentKey
   public void copyAttrs(AgentKey dest) {
     SAgentKey src = this;
     // Copy

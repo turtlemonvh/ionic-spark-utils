@@ -4,3 +4,6 @@ project/project/
 project/target/
 sbt/
 
+.java-version
+.setup-env
+
