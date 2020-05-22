@@ -1,4 +1,4 @@
-package com.ionic.sparkutil;
+package io.github.turtlemonvh.ionicsparkutils;
 
 /*
 A cache-like layer on top of a key services implementation. Currently set up for testing rather than performance.

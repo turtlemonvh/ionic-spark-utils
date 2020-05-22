@@ -7,10 +7,10 @@ lazy val root = (project in file(".")).
 
   settings(
     inThisBuild(List(
-      organization := "com.ionic",
+      organization := "io.github.turtlemonvh",
       scalaVersion := scalaVer
     )),
-    name := "sparkutil",
+    name := "ionicsparkutils",
     version := sparkUtilVer,
 
     // FIXME: "bootstrap class path not set in conjunction with -source 8"

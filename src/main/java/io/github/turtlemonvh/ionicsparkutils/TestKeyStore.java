@@ -1,4 +1,4 @@
-package com.ionic.sparkutil;
+package io.github.turtlemonvh.ionicsparkutils;
 
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.IonicException;

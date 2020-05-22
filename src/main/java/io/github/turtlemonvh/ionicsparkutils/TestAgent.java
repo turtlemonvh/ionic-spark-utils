@@ -1,4 +1,4 @@
-package com.ionic.sparkutil;
+package io.github.turtlemonvh.ionicsparkutils;
 
 /*
 

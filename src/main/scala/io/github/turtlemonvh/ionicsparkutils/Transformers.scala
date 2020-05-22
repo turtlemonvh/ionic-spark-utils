@@ -1,4 +1,4 @@
-package com.ionic.sparkutil
+package io.github.turtlemonvh.ionicsparkutils
 
 import org.apache.spark.sql.functions.{ udf, col }
 import org.apache.spark.sql.{ DataFrame, Column, Row }
