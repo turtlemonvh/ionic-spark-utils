@@ -158,19 +158,9 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     this.immutable = true;
   }
 
-  /* Function to map the request into a cache key
-  /* The cache key is simply a combination of the hash codes for the attributes and the mutable
-  /* attributes.
-  /* This us the function that should be overridden to give custom cache behavior.
-  /* For example
-  /* - Set to the key id to just cache get requests by id
-  /* - Use reflection to get the classname to avoid cache hits for creates
-  /*/
-
-  // Special cache for mapping key creates into key fetches.
-  // Save a single key id in the map.
-  // No special handling needed for external id because keys with the same external id will share
-  // the same cache key.
+  // Cache for mapping key creates into key fetches.
+  // Note that no special handling is needed for external id because
+  // keys with the same external id will share the same cache key.
   private synchronized void setInKeyCreateCache(AgentKey key) {
     String cachekey = this.keyCacheResolver.toKey(key);
     if (cachekey == null) return;
@@ -274,8 +264,6 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
       String refId = key.getRefId();
       refIdToKeyIds.put(refId, new HashSet());
 
-      // FIXME: This should return a list of matched key ids as well as a new key create request for
-      // the remaining keys
       // We always translate into a fetch by id but returned keys will always have the same
       // external id as the request as long as key attributes are part of the cache key.
       KeyCreateCacheResponse ckcr = this.getFromKeyCreateCache(key);
@@ -456,8 +444,8 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
       response.add(key);
     }
     for (GetKeysResponse.QueryResult qr : upstreamResponse.getQueryResults()) {
-      // TODO: only set if there was no limit on the number of results returned from the external id
-      // query
+      // TODO: only set if there was no limit on the number of results returned from the
+      // external id query
       if (qr.getMappedIds().size() != 0) {
         // Don't cache items with no matches or errrors
         this.setInExtIdCache(qr.getKeyId(), qr.getMappedIds());
