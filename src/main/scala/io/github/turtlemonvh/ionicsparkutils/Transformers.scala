@@ -9,10 +9,12 @@ import org.apache.spark.internal.Logging
 import com.ionic.sdk.key.KeyServices
 import com.ionic.sdk.agent.cipher.chunk.ChunkCipherV3
 
+import java.io.Serializable;
+
 /**
  * Functions for working with Spark's [[https://spark.apache.org/docs/2.4.0/api/scala/index.html#org.apache.spark.sql.Dataset@transform[U](t:org.apache.spark.sql.Dataset[T]=%3Eorg.apache.spark.sql.Dataset[U]):org.apache.spark.sql.Dataset[U] Dataset transform]] method.
  */
-object Transformers extends Logging {
+object Transformers extends Logging with Serializable {
 
   /**
    * Encrypt or decrypt a set of columns on a dataframe object.
