@@ -13,18 +13,21 @@ import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
 import com.ionic.sdk.agent.request.updatekey.UpdateKeysResponse;
 import com.ionic.sdk.error.IonicException;
 
-/*
- * A version of the key services interface with default methods.
- * This allows wrappers to just override a small number of methods to change behavior.
+/**
+ * A version of the
+ * [[https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.7.0/sdk/com/ionic/sdk/key/KeyServices.html
+ * KeyServices]] interface with default methods. This allows wrappers to just override a small
+ * number of methods to change behavior.
  *
- * Usually the functions to override include
+ * <p>Usually the functions to override include
  *
- *      CreateKeysResponse      createKeys(CreateKeysRequest request)
- *      GetKeysResponse         getKeys(GetKeysRequest request)
- *      UpdateKeysResponse      updateKeys(final UpdateKeysRequest request)
+ * <p>1. `CreateKeysResponse createKeys(CreateKeysRequest request)` 1. `GetKeysResponse
+ * getKeys(GetKeysRequest request)` 1. `UpdateKeysResponse updateKeys(final UpdateKeysRequest
+ * request)`
  *
+ * @see com.ionic.sdk.key.KeyServices
  */
-interface KeyServicesMinimal extends KeyServices {
+public interface KeyServicesMinimal extends KeyServices {
 
   default CreateKeysResponse createKey() throws IonicException {
     return this.createKey(new KeyAttributesMap(), new KeyAttributesMap(), new MetadataMap());

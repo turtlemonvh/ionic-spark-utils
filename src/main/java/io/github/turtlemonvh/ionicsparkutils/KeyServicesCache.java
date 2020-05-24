@@ -44,24 +44,30 @@ import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*
+/**
  * The key services cache is a generic caching wrapper that can be placed around any object
- * implementing the {@link KeyServices} interface.
+ * implementing the
+ * [[https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.7.0/sdk/com/ionic/sdk/key/KeyServices.html
+ * KeyServices]] interface.
  *
- * It provides caching on 3 levels.
+ * <p>It provides caching on 3 levels.
  *
- * Key fetches by id. The key corresponding to a given key id is cached.
- * Key fetches by external id. The mapping from externalid to keyids is cached.
- * Key creates. Creates can be translated into fetch requests via a customizable cache key resolution function implementing {@link KeyCreateCacheResolver}.
+ * <p>- Key fetches by id. The key corresponding to a given key id is cached. - Key fetches by
+ * external id. The mapping from externalid to keyids is cached. - Key creates. Creates can be
+ * translated into fetch requests via a customizable cache key resolution function implementing
+ * KeyCreateCacheResolver.
  *
- * By combining these 3 types of caches, KeyServicesCache is able to serve key fetches, fetches by external id, and key creates from cache.
- * Key updates are always passed through to the wrapped object, but the responses are cached.
+ * <p>By combining these 3 types of caches, KeyServicesCache is able to serve key fetches, fetches
+ * by external id, and key creates from cache. Key updates are always passed through to the wrapped
+ * object, but the responses are cached.
  *
- * Currently the individual caches are not configurable for TTL or max size. They cache forever and are unbounded.
- * As such, they are a reasonable solution for short lived operations (created in Spark transform functions), but
- * are not great for longer lived services. This will be addressed in future versions of this package.
+ * <p>Currently the individual caches are not configurable for TTL or max size. They cache forever
+ * and are unbounded. As such, they are a reasonable solution for short lived operations (created in
+ * Spark transform functions), but are not great for longer lived services. This will be addressed
+ * in future versions of this package.
  *
- *
+ * @see com.ionic.sdk.key.KeyServices
+ * @todo swappable cache implementation
  */
 public class KeyServicesCache extends KeyServicesWrapper implements KeyServices, Serializable {
   public KeyServices wrapped;
@@ -69,9 +75,9 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
 
   final Logger logger = LoggerFactory.getLogger(KeyServicesCache.class);
 
-  /*
-   * Interface for defining a custom approach for translating key creates into key fetches.
-   * Return null to skip cache.
+  /**
+   * Interface for defining a custom approach for translating key creates into key fetches. Return
+   * null to skip cache.
    */
   public interface KeyCreateCacheResolver {
     String toKey(AgentKey key);
@@ -79,9 +85,9 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     String toKey(CreateKeysRequest.Key key);
   }
 
-  /*
-   * A default implementation of KeyCreateCacheResolver which segments keys by attributes.
-   * Keys with the same values of attributes and mutable attributes will share the same slot in the cache.
+  /**
+   * A default implementation of KeyCreateCacheResolver which segments keys by attributes. Keys with
+   * the same values of attributes and mutable attributes will share the same slot in the cache.
    */
   public class AttributesKeyCreateCacheResolver implements KeyCreateCacheResolver, Serializable {
     public String toKey(AgentKey key) {
@@ -95,8 +101,9 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     }
   }
 
-  /*
-   * An implementation of KeyCreateCacheResolver which returns null, so no key creates will be translated into fetches.
+  /**
+   * An implementation of KeyCreateCacheResolver which returns null, so no key creates will be
+   * translated into fetches.
    */
   public class NullKeyCreateCacheResolver implements KeyCreateCacheResolver, Serializable {
     public String toKey(AgentKey key) {
@@ -123,7 +130,7 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
   // Map of external id to key ids. We cache just the key id, not the full response.
   private HashMap<String, List<String>> externalIdCache;
 
-  // Most calls will be delegated down to the wrapped KeyServices object
+  /** Main constructor. */
   public KeyServicesCache(KeyServices wrapped) throws IonicException {
     super(wrapped);
     this.wrapped = wrapped;
@@ -134,14 +141,14 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     this.keyCacheResolver = new AttributesKeyCreateCacheResolver();
   }
 
-  // Constructor with a customized function for looking up key creates in cache
+  /** Constructor with a customized function for looking up key creates in cache. */
   public KeyServicesCache(KeyServices wrapped, KeyCreateCacheResolver keyCacheResolver)
       throws IonicException {
     this(wrapped);
     this.keyCacheResolver = keyCacheResolver;
   }
 
-  // A composite class to allow us to return multiple items in response to a cache lookup
+  /** A composite class to allow us to return multiple items in response to a cache lookup. */
   private class KeyCreateCacheResponse implements Serializable {
     public List<String> matchedIds;
     public CreateKeysRequest.Key queryForRemainingKeys;
@@ -152,25 +159,28 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     }
   }
 
-  // Make this data structure immutable.
-  // Any attempts to reach the underlying wrapper will result in an exception.
+  /**
+   * Make this data structure immutable. Any attempts to reach the underlying wrapper will result in
+   * an exception.
+   */
   public synchronized void makeImmutable() {
     this.immutable = true;
   }
 
-  // Cache for mapping key creates into key fetches.
-  // Note that no special handling is needed for external id because
-  // keys with the same external id will share the same cache key.
+  /**
+   * Update cache for mapping key creates into key fetches. Note that no special handling is needed
+   * for external id because keys with the same external id will share the same cache key.
+   */
   private synchronized void setInKeyCreateCache(AgentKey key) {
     String cachekey = this.keyCacheResolver.toKey(key);
     if (cachekey == null) return;
     if (this.keycreateCache.get(cachekey) == null) {
-      this.keycreateCache.put(cachekey, new HashSet());
+      this.keycreateCache.put(cachekey, new HashSet<String>());
     }
     this.keycreateCache.get(cachekey).add(key.getId());
   }
 
-  // Add a key to both the key create cache and the key cache
+  /** Add a key to both the key create cache and the key cache */
   private synchronized void addToCache(AgentKey key) {
     // Add to key create cache
     this.setInKeyCreateCache(key);
@@ -178,19 +188,18 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     this.keycache.put(key.getId(), new SAgentKey(key));
   }
 
-  private synchronized void setInExtIdCache(String externalId, List keyIds) {
+  private synchronized void setInExtIdCache(String externalId, List<String> keyIds) {
     this.externalIdCache.put(externalId, keyIds);
   }
 
-  // Get a key id from cache. Returns a random choice if multiple values match.
-  // FIXME: Should allow getting some from cache and getting some upstream.
+  /** Get a key id from cache. Returns a random choice if multiple values match. */
   private KeyCreateCacheResponse getFromKeyCreateCache(CreateKeysRequest.Key req)
       throws IonicException {
     String cachekey = this.keyCacheResolver.toKey(req);
     Set<String> allMatchingIds = this.keycreateCache.get(cachekey);
     Integer nFromCache = req.getQuantity();
 
-    List<String> matchedIds = new ArrayList();
+    List<String> matchedIds = new ArrayList<String>();
     CreateKeysRequest.Key queryForRemainingKeys =
         new CreateKeysRequest.Key(
             req.getRefId(),
@@ -236,22 +245,23 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     return new KeyCreateCacheResponse(matchedIds, queryForRemainingKeys);
   }
 
-  /*
+  /**
    * Attempts to fulfill a createKeys request by via the following strategy:
    *
-   * 1) Translating to key fetches, which may themselves be served from cache
-   * 2) Passing the key create request (or a portion of the key create request) upstream
+   * <p>1) Translating to key fetches, which may themselves be served from cache 2) Passing the key
+   * create request (or a portion of the key create request) upstream
    *
-   * Requests may be partly filled from the key cache, partly from upstream fetches, and partly from creates.
-   * Because of this, calls to `createKeys` may in some situations result in multiple http requests (one fetch and one create).
-   * Any newly fetched ot newly created keys are added to the cache.
+   * <p>Requests may be partly filled from the key cache, partly from upstream fetches, and partly
+   * from creates. Because of this, calls to `createKeys` may in some situations result in multiple
+   * http requests (one fetch and one create). Any newly fetched ot newly created keys are added to
+   * the cache.
    *
-   * Any errors are aggregated onto the response object.
+   * <p>Any errors are aggregated onto the response object.
    */
   @Override
   public CreateKeysResponse createKeys(CreateKeysRequest request) throws IonicException {
     // A map of refId:keyId for merging fetched keys back into create response
-    HashMap<String, Set<String>> refIdToKeyIds = new HashMap();
+    HashMap<String, Set<String>> refIdToKeyIds = new HashMap<String, Set<String>>();
 
     // Translate into fetches by id
     GetKeysRequest upstreamFetchReq = new GetKeysRequest();
@@ -262,7 +272,7 @@ public class KeyServicesCache extends KeyServicesWrapper implements KeyServices,
     // A CreateKeysRequest.Key is like AgentKey with extra properties: refId, quantity
     for (CreateKeysRequest.Key key : request.getKeys()) {
       String refId = key.getRefId();
-      refIdToKeyIds.put(refId, new HashSet());
+      refIdToKeyIds.put(refId, new HashSet<String>());
 
       // We always translate into a fetch by id but returned keys will always have the same
       // external id as the request as long as key attributes are part of the cache key.

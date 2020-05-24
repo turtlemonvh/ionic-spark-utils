@@ -1,7 +1,9 @@
-// give the user a nice default project!
-
 import Dependencies._
 import Versions._
+
+lazy val scala212 = "2.12.10"
+lazy val scala211 = "2.11.12"
+lazy val supportedScalaVersions = List(scala212, scala211)
 
 lazy val root = (project in file(".")).
 
@@ -13,8 +15,7 @@ lazy val root = (project in file(".")).
     name := "ionicsparkutils",
     version := sparkUtilVer,
 
-    // FIXME: "bootstrap class path not set in conjunction with -source 8"
-    javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+    javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
     javaOptions ++= Seq("-Xms512M", "-Xmx2048M", "-XX:MaxPermSize=2048M", "-XX:+CMSClassUnloadingEnabled"),
     testOptions += Tests.Argument(TestFrameworks.JUnit, "-v", "-a", "+q"),
     scalacOptions ++= Seq("-deprecation", "-unchecked"),
@@ -22,18 +23,17 @@ lazy val root = (project in file(".")).
     fork := true,
 
     coverageHighlighting := true,
-
-    libraryDependencies ++= sparkDeps ++ coreDeps ++ testDeps,
+    crossScalaVersions := supportedScalaVersions,
 
     // uses compile classpath for the run task, including "provided" jar (cf http://stackoverflow.com/a/21803413/3827)
     run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run)).evaluated,
 
-    scalacOptions ++= Seq("-deprecation", "-unchecked"),
+    libraryDependencies ++= sparkDeps ++ coreDeps ++ testDeps,
     pomIncludeRepository := { x => false },
-
     resolvers ++= repos,
 
-    pomIncludeRepository := { x => false },
+    // Documentation
+    autoAPIMappings := true,
 
     // publish settings
     publishTo := {
@@ -44,3 +44,4 @@ lazy val root = (project in file(".")).
         Some("releases"  at nexus + "service/local/staging/deploy/maven2")
     }
   )
+

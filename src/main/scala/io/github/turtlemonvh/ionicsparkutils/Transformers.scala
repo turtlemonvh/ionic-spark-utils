@@ -1,28 +1,26 @@
 package io.github.turtlemonvh.ionicsparkutils
 
 import org.apache.spark.sql.functions.{ udf, col }
-import org.apache.spark.sql.{ DataFrame, Column, Row }
+import org.apache.spark.sql.{ Dataset, DataFrame, Column, Row }
 import org.apache.spark.sql.types.{ StringType, StructField, StructType }
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.slf4j.LoggerFactory
+import org.apache.spark.internal.Logging
 
 import com.ionic.sdk.key.KeyServices
 import com.ionic.sdk.agent.cipher.chunk.ChunkCipherV3
 
-object Transformers {
+/**
+ * Functions for working with Spark's [[https://spark.apache.org/docs/2.4.0/api/scala/index.html#org.apache.spark.sql.Dataset@transform[U](t:org.apache.spark.sql.Dataset[T]=%3Eorg.apache.spark.sql.Dataset[U]):org.apache.spark.sql.Dataset[U] Dataset transform]] method.
+ */
+object Transformers extends Logging {
 
-  val logger = LoggerFactory.getLogger(this.getClass.getName)
-
-  /*
+  /**
    * Encrypt or decrypt a set of columns on a dataframe object.
    * New columns are added with prefixes "ionic_enc_" and "ionic_dec_" for encrypted and decrypted columns, respectively.
    *
-   * Currently, only StringType columns are supported.
-   * https://spark.apache.org/docs/2.3.0/api/scala/index.html#org.apache.spark.sql.types.DataType
+   * Currently, only [[https://spark.apache.org/docs/2.4.0/api/scala/index.html#org.apache.spark.sql.types.StringType$ StringType]] columns are supported.
    *
-   *
-   * TODO:
-   * - add support for additional column types: binaryType, VarcharType, CharType
+   * @todo Add support for additional [[https://spark.apache.org/docs/2.4.0/api/scala/index.html#org.apache.spark.sql.types.DataType column types]]: binaryType, VarcharType, CharType
    */
   def Encrypt(encryptCols: List[String], decryptCols: List[String], agentFactory: () => KeyServices)(df: DataFrame): DataFrame = {
     // Grab information about the fields to be encrypted and decrypted
@@ -72,9 +70,9 @@ object Transformers {
       row: Row,
       cc: ChunkCipherV3): Row = {
 
-      logger.debug(s"transformRow: Row schema: ${row.schema}")
-      logger.debug(s"transformRow: Row seq: ${row.toSeq}")
-      logger.debug(s"transformRow: Row string: ${row.toString}")
+      logDebug(s"transformRow: Row schema: ${row.schema}")
+      logDebug(s"transformRow: Row seq: ${row.toSeq}")
+      logDebug(s"transformRow: Row string: ${row.toString}")
 
       // Take lists of string column names and turn into sets of column values
 

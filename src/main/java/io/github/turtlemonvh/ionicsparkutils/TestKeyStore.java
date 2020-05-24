@@ -16,9 +16,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Map.Entry;
 import java.util.Base64;
 
-/*
- * TestKeyStore is a map based key store which is safe for concurrent access.
- * Internals are exposed as public attributes for convenience in evaluating state in tests.
+/**
+ * A map-based key store which is safe for concurrent access. Internals are exposed as public
+ * attributes for convenience in evaluating state in tests. This is the default [[KeyStore]] used by
+ * [[TestAgent]].
  */
 public class TestKeyStore implements KeyStore, Serializable {
 
@@ -88,7 +89,7 @@ public class TestKeyStore implements KeyStore, Serializable {
     if (key.getAttributesMap().containsKey(ionicExternalIdAttributeName)) {
       for (String externalId : key.getAttributesMap().get(ionicExternalIdAttributeName)) {
         if (this.externalIdToKeyId.get(externalId) == null) {
-          this.externalIdToKeyId.put(externalId, new HashSet());
+          this.externalIdToKeyId.put(externalId, new HashSet<String>());
         }
         this.externalIdToKeyId.get(externalId).add(key.getId());
       }

@@ -15,16 +15,20 @@ import com.ionic.sdk.error.IonicException;
 
 import java.io.Serializable;
 
-/*
- * A wrapper around another KeyServices implementation, meant for customizing behavior.
- * This allows wrappers to just override a small number of methods to change behavior.
+/**
+ * A wrapper around another
+ * [[https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.7.0/sdk/com/ionic/sdk/key/KeyServices.html
+ * KeyServices]] object, meant for customizing behavior. This allows wrappers to just override a
+ * small number of methods to change behavior. All methods not overridden pass through to the
+ * wrapped KeyServices object.
  *
- * Usually the functions to override include
+ * <p>Usually the functions to override include
  *
- *      createKeys(CreateKeysRequest request)
- *      getKeys(GetKeysRequest request)
- *      updateKeys(final UpdateKeysRequest request)
+ * <p>1. `CreateKeysResponse createKeys(CreateKeysRequest request)` 1. `GetKeysResponse
+ * getKeys(GetKeysRequest request)` 1. `UpdateKeysResponse updateKeys(final UpdateKeysRequest
+ * request)`
  *
+ * @see com.ionic.sdk.key.KeyServices
  */
 public class KeyServicesWrapper implements KeyServicesMinimal, Serializable {
   public KeyServices wrapped;
