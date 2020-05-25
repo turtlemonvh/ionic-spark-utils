@@ -22,7 +22,7 @@ jobs:
           key: sbt-cache
       - run:
           name: Compile, package, test
-          command: cat /dev/null | sbt clean update package test
+          command: cat /dev/null | sbt clean update "+ test" "+ package" "+ packageSrc" "+ packageDoc"
       - store_test_results:
           path: target/test-reports/
       - save_cache:
@@ -36,6 +36,7 @@ jobs:
           root: target
           paths:
             - scala-2.11/*.jar
+            - scala-2.12/*.jar
 
   release:
     docker:
@@ -59,11 +60,16 @@ jobs:
           # We set "GITHUB_ACCESS_TOKEN" for the job in the CircleCI application
           # Process for generating: https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line
           # Detault env vars defined here: https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
-          name: Upload release jar
+          name: Upload release jars
           command: |
                     export JAR_VERSION=$(echo $CIRCLE_TAG | sed s/^v//g)
                     export GITHUB_TOKEN=$GITHUB_ACCESS_TOKEN
-                    github-release upload --user $CIRCLE_PROJECT_USERNAME --repo $CIRCLE_PROJECT_REPONAME --tag $CIRCLE_TAG --name sparkutil_2.11-$CIRCLE_TAG.jar --file /tmp/target/scala-2.11/sparkutil_2.11-$JAR_VERSION.jar
+                    for SCALA_VERSION in $(echo 2.11 2.12); do
+                      cd /tmp/target/scala-$SCALA_VERSION
+                      github-release upload --user $CIRCLE_PROJECT_USERNAME --repo $CIRCLE_PROJECT_REPONAME --tag $CIRCLE_TAG --name ionicsparkutils_$SCALA_VERSION-$JAR_VERSION-javadoc.jar --file ionicsparkutils_$SCALA_VERSION-$JAR_VERSION.jar
+                      github-release upload --user $CIRCLE_PROJECT_USERNAME --repo $CIRCLE_PROJECT_REPONAME --tag $CIRCLE_TAG --name ionicsparkutils_$SCALA_VERSION-$JAR_VERSION-sources.jar --file ionicsparkutils_$SCALA_VERSION-$JAR_VERSION.jar
+                      github-release upload --user $CIRCLE_PROJECT_USERNAME --repo $CIRCLE_PROJECT_REPONAME --tag $CIRCLE_TAG --name ionicsparkutils_$SCALA_VERSION-$JAR_VERSION.jar --file ionicsparkutils_$SCALA_VERSION-$JAR_VERSION.jar
+                    done
 
 # https://circleci.com/docs/2.0/workflows/
 workflows:
