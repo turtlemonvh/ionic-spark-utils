@@ -10,9 +10,18 @@ lazy val root = (project in file(".")).
   settings(
     inThisBuild(List(
       organization := "io.github.turtlemonvh",
-      scalaVersion := scalaVer
+      scalaVersion := scalaVer,
+      developers := List(
+        Developer(
+          id    = "turtlemonvh",
+          name  = "Timothy Van Heest",
+          email = "timothy.vanheest@gmail.com",
+          url   = url("https://turtlemonvh.github.io/")
+        )
+      )
     )),
     name := "ionicsparkutils",
+    description := "Utilities for working with Ionic encryption via Spark.",
     version := sparkUtilVer,
 
     javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked"),
@@ -33,6 +42,7 @@ lazy val root = (project in file(".")).
 
     libraryDependencies ++= sparkDeps ++ coreDeps ++ testDeps,
     pomIncludeRepository := { x => false },
+    publishMavenStyle := true,
     resolvers ++= repos,
 
     // Documentation
