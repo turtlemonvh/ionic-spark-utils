@@ -1,4 +1,4 @@
-package com.ionic.sparkutil;
+package io.github.turtlemonvh.ionicsparkutils;
 
 /*
 
@@ -38,9 +38,12 @@ import java.util.HashSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/*
- * TestAgent is a mock based on KeyServices (https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/key/KeyServices.html).
- * Internals are exposed as public attributes for convenience in evaluating state in tests.
+/**
+ * TestAgent is a mock implementing the
+ * [[https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/key/KeyServices.html
+ * KeyServices]] interface. Internals are exposed as public attributes for convenience in evaluating
+ * state in tests. Keys are managed via an implementation of [[KeyStore]], by default
+ * [[TestKeyStore]].
  */
 public class TestAgent implements KeyServicesMinimal, Serializable {
   public SDeviceProfile profile;

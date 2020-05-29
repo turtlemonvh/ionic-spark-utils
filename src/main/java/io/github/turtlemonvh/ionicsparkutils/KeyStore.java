@@ -1,10 +1,11 @@
-package com.ionic.sparkutil;
+package io.github.turtlemonvh.ionicsparkutils;
 
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.error.IonicException;
 import com.ionic.sdk.agent.request.updatekey.UpdateKeysRequest;
 import java.util.Set;
 
+/** Interface to allow swapping out the key store implementation in [[TestAgent]]. */
 public interface KeyStore {
   // Return the keyspace associated with this keystore
   public String getKeySpace();

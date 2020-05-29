@@ -1,4 +1,4 @@
-package com.ionic.sparkutil;
+package io.github.turtlemonvh.ionicsparkutils;
 
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.agent.key.KeyAttributesMap;
@@ -9,25 +9,14 @@ import com.ionic.sdk.agent.key.KeyObligationsMap;
 
 import java.io.Serializable;
 
-/*
- * Added until `CreateKeysResponse.Key implements Serializable` so we can serialize our key store implementation
- * https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/request/createkey/CreateKeysResponse.Key.html
+/**
+ * A serializable version of
+ * [[https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.7.0/sdk/com/ionic/sdk/agent/key/AgentKey.html
+ * AgentKey]]. Added until `CreateKeysResponse.Key implements Serializable` so we can serialize our
+ * key store implementation.
  *
- * This doesn't work because of serialization and inheritance in Java:
- * https://www.geeksforgeeks.org/object-serialization-inheritance-java/
- * https://stackoverflow.com/questions/14042319/how-serialization-works-when-only-subclass-implements-serializable
- * Instance variables inherited from the non-serializable superclass are not serialized.
- *
- * We need to implement our own version of this which stored data directly on serializable objects.
- *
- *
- * Note that key attributes map is serializable:
- * https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/key/KeyAttributesMap.html
- *
- * AgentKey is not serializable
- * https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/agent/key/AgentKey.html
+ * <p>Includes a few helper methods for copying attributes to and from `AgentKey`s.
  */
-
 public class SAgentKey implements Serializable, KeyBase, KeyMetadata {
 
   private String id;
@@ -45,6 +34,7 @@ public class SAgentKey implements Serializable, KeyBase, KeyMetadata {
     super();
   }
 
+  /** Construct from an `AgentKey` */
   public SAgentKey(AgentKey src) {
     super();
     // Copy
@@ -59,7 +49,7 @@ public class SAgentKey implements Serializable, KeyBase, KeyMetadata {
     this.setObligationsMap(src.getObligationsMap());
   }
 
-  // Copy between two agentkeys
+  /** Copy attributes between two `AgentKey`s */
   public static void copyAttrs(AgentKey src, AgentKey dest) {
     dest.setId(src.getId());
     dest.setKey(src.getKey());
@@ -72,7 +62,7 @@ public class SAgentKey implements Serializable, KeyBase, KeyMetadata {
     dest.setObligationsMap(src.getObligationsMap());
   }
 
-  // Copy attributes into a an AgentKey
+  /** Copy attributes into an `AgentKey` */
   public void copyAttrs(AgentKey dest) {
     SAgentKey src = this;
     // Copy

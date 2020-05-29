@@ -14,19 +14,11 @@ object Dependencies {
   )
 
   lazy val coreDeps = Seq(
-      "com.ionic" % "ionic-sdk" % "2.6.0",
-      "org.slf4j" % "slf4j-api" % "1.7.30",
-      "org.slf4j" % "slf4j-simple" % "1.7.30",
+      "com.ionic" % "ionic-sdk" % "2.6.0" % "provided",
+      // Should work with any modern version of slf4j
+      "org.slf4j" % "slf4j-api" % "1.7.30" % "provided",
   )
 
-  /**
-   * Add `% "test"` after the dependency to mark it as test-only
-   *
-   * http://www.scalatest.org/user_guide/using_scalatest_with_sbt
-   * https://www.scala-sbt.org/1.x/docs/Library-Dependencies.html
-   *
-   * Hive is needed for DataFrameSuiteBase: https://github.com/holdenk/spark-testing-base/wiki/DataFrameSuiteBase
-   */
   lazy val testDeps = Seq(
     "com.holdenkarau" %% "spark-testing-base" % sparkTestingBaseVer % "test",
     // https://mvnrepository.com/artifact/org.apache.spark/spark-hive
@@ -35,7 +27,9 @@ object Dependencies {
     "org.scalatest" %% "scalatest" % scalaTestVer % "test",
     "org.scalacheck" %% "scalacheck" % scalaCheckVer % "test",
     "junit" % "junit" % junitVer % "test",
-    "com.novocode" % "junit-interface" % junitInterfaceVer % "test"
+    "com.novocode" % "junit-interface" % junitInterfaceVer % "test",
+    // Send to stdout: http://www.slf4j.org/manual.html#swapping
+    "org.slf4j" % "slf4j-simple" % "1.7.30" % "test"
   )
 
   val repos = Seq(
