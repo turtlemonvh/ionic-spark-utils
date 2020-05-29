@@ -11,5 +11,5 @@ object Versions {
   lazy val hadoopVer = "2.7.3"
   lazy val sparkTestingBaseVer = "2.4.0_0.14.0"
   // Ours
-  lazy val sparkUtilVer = "0.0.2"
+  lazy val sparkUtilVer = "0.0.3-SNAPSHOT"
 }
