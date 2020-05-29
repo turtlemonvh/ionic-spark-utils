@@ -18,7 +18,15 @@ lazy val root = (project in file(".")).
           email = "timothy.vanheest@gmail.com",
           url   = url("https://turtlemonvh.github.io/")
         )
-      )
+      ),
+      scmInfo := Some(
+        ScmInfo(
+          url("https://github.com/turtlemonvh/ionic-spark-utils"),
+          "scm:git@github.com:turtlemonvh/ionic-spark-utils.git"
+        )
+      ),
+      licenses := List("MIT" -> new URL("https://opensource.org/licenses/mit-license.php")),
+      homepage := Some(url("https://github.com/turtlemonvh/ionic-spark-utils"))
     )),
     name := "ionicsparkutils",
     description := "Utilities for working with Ionic encryption via Spark.",
@@ -35,6 +43,8 @@ lazy val root = (project in file(".")).
     crossScalaVersions := supportedScalaVersions,
 
     // Timothy Van Heest (Sonatype) <timothy.vanheest@gmail.com>
+    // http://keyserver.ubuntu.com/pks/lookup?search=timothy.vanheest%40gmail.com&op=index
+    // http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xe28a79fe457c8b867a9d37d1b1e97d3579e8ca30
     usePgpKeyHex("E28A79FE457C8B867A9D37D1B1E97D3579E8CA30"),
 
     // uses compile classpath for the run task, including "provided" jar (cf http://stackoverflow.com/a/21803413/3827)
@@ -44,6 +54,7 @@ lazy val root = (project in file(".")).
     pomIncludeRepository := { x => false },
     publishMavenStyle := true,
     resolvers ++= repos,
+    credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials"),
 
     // Documentation
     autoAPIMappings := true,
