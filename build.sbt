@@ -25,6 +25,9 @@ lazy val root = (project in file(".")).
     coverageHighlighting := true,
     crossScalaVersions := supportedScalaVersions,
 
+    // Timothy Van Heest (Sonatype) <timothy.vanheest@gmail.com>
+    usePgpKeyHex("E28A79FE457C8B867A9D37D1B1E97D3579E8CA30"),
+
     // uses compile classpath for the run task, including "provided" jar (cf http://stackoverflow.com/a/21803413/3827)
     run in Compile := Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run)).evaluated,
 
