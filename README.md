@@ -1,6 +1,8 @@
 # Ionic Spark Util
 
 [![CircleCI](https://circleci.com/gh/turtlemonvh/ionic-spark-utils.svg?style=svg)](https://circleci.com/gh/turtlemonvh/ionic-spark-utils)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.turtlemonvh/ionicsparkutils_2.12/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.turtlemonvh/ionicsparkutils_2.12)
+[![javadoc](https://javadoc.io/badge2/io.github.turtlemonvh/ionicsparkutils_2.12/javadoc.svg)](https://javadoc.io/doc/io.github.turtlemonvh/ionicsparkutils_2.12)
 
 A set of utilities for working with [Ionic encryption](https://ionic.com/developers/) in [Spark](https://spark.apache.org/).
 
