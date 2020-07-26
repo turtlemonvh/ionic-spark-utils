@@ -49,7 +49,7 @@ val encryptedDF = mydataset
 
 ## Status
 
-Works for basic operations. API is likely to change.
+Works for basic operations. Spark API is likely to change in future releases.
 
 ## Workflow
 

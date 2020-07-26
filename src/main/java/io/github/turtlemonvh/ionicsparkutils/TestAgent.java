@@ -5,6 +5,7 @@ package io.github.turtlemonvh.ionicsparkutils;
 https://dev.ionic.com/sdk_docs/ionic_platform_sdk/java/version_2.6.0/com/ionic/sdk/key/KeyServices.html
 */
 import com.ionic.sdk.key.KeyServices;
+import com.ionic.sdk.key.KeyServicesMinimal;
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.agent.key.KeyObligationsMap;
 import com.ionic.sdk.agent.key.KeyAttributesMap;
@@ -45,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * state in tests. Keys are managed via an implementation of [[KeyStore]], by default
  * [[TestKeyStore]].
  */
-public class TestAgent implements KeyServicesMinimal, Serializable {
+public class TestAgent extends KeyServicesMinimal implements Serializable {
   public SDeviceProfile profile;
   public KeyStore keystore;
   private final SecureRandom rng;
@@ -152,11 +153,6 @@ public class TestAgent implements KeyServicesMinimal, Serializable {
   @Override
   public DeviceProfile getActiveProfile() {
     return this.profile.toDeviceProfile();
-  }
-
-  @Override
-  public boolean hasActiveProfile() {
-    return true;
   }
 
   /*

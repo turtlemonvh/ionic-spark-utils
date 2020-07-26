@@ -1,6 +1,7 @@
 package io.github.turtlemonvh.ionicsparkutils;
 
 import com.ionic.sdk.key.KeyServices;
+import com.ionic.sdk.key.KeyServicesMinimal;
 import com.ionic.sdk.agent.request.createkey.CreateKeysResponse;
 import com.ionic.sdk.agent.key.KeyAttributesMap;
 import com.ionic.sdk.agent.data.MetadataMap;
@@ -30,7 +31,7 @@ import java.io.Serializable;
  *
  * @see com.ionic.sdk.key.KeyServices
  */
-public class KeyServicesWrapper implements KeyServicesMinimal, Serializable {
+public class KeyServicesWrapper extends KeyServicesMinimal implements Serializable {
   public KeyServices wrapped;
 
   // Most calls will be delegated down to the wrapped KeyServices object
@@ -44,10 +45,6 @@ public class KeyServicesWrapper implements KeyServicesMinimal, Serializable {
 
   public DeviceProfile getActiveProfile() {
     return this.wrapped.getActiveProfile();
-  }
-
-  public boolean hasActiveProfile() {
-    return this.wrapped.hasActiveProfile();
   }
 
   public GetKeysResponse getKeys(GetKeysRequest request) throws IonicException {
