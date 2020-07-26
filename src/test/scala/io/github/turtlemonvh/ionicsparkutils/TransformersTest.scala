@@ -4,8 +4,7 @@ package io.github.turtlemonvh.ionicsparkutils
  * A simple test of a spark transformer.
  */
 
-import com.holdenkarau.spark.testing.{ DataFrameSuiteBase }
-import com.holdenkarau.spark.testing.SharedSparkContext
+import com.holdenkarau.spark.testing.DataFrameSuiteBase
 import org.scalatest.FunSuite
 
 import com.ionic.sdk.agent.cipher.chunk.ChunkCipherV3
