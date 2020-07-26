@@ -27,14 +27,10 @@ import com.ionic.sdk.cipher.aes.AesCipher;
 
 import java.io.Serializable;
 import java.security.SecureRandom;
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.Set;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.HashSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
